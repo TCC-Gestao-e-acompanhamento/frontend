@@ -1,0 +1,83 @@
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import { AuthProvider } from './auth/AuthContext'
+import { PublicLayout } from './layouts/PublicLayout'
+import { RequireRole } from './routes/RequireRole'
+import AlunoDashboard from './pages/aluno/AlunoDashboard'
+import EtapasPage from './pages/aluno/EtapasPage'
+import FeedbacksPage from './pages/aluno/FeedbacksPage'
+import CoordenacaoDashboard from './pages/coordenacao/CoordenacaoDashboard'
+import OrientadoresPage from './pages/coordenacao/OrientadoresPage'
+import PrazosPage from './pages/coordenacao/PrazosPage'
+import OrientadorDashboard from './pages/orientador/OrientadorDashboard'
+import BancasPublicasPage from './pages/public/BancasPublicasPage'
+import CalendarioPage from './pages/public/CalendarioPage'
+import MinhasSolicitacoesPage from './pages/aluno/MinhasSolicitacoesPage'
+import SolicitarOrientacaoPage from './pages/aluno/SolicitarOrientacaoPage'
+import PerfilPublicoPage from './pages/orientador/PerfilPublicoPage'
+import SolicitacoesRecebidasPage from './pages/orientador/SolicitacoesRecebidasPage'
+import BuscaOrientadoresPage from './pages/public/OrientadoresPage'
+import ProfessorPerfilPage from './pages/public/ProfessorPerfilPage'
+import SolicitacaoDetailPage from './pages/shared/SolicitacaoDetailPage'
+import HomePage from './pages/public/HomePage'
+import LoginPage from './pages/public/LoginPage'
+import BancasPage from './pages/shared/BancasPage'
+import DocumentsPage from './pages/shared/DocumentsPage'
+import SchedulePage from './pages/shared/SchedulePage'
+import TccDetailPage from './pages/shared/TccDetailPage'
+import TccListPage from './pages/shared/TccListPage'
+
+export default function App() {
+  return (
+    <BrowserRouter>
+      <AuthProvider>
+        <Routes>
+          {/* Área pública */}
+          <Route element={<PublicLayout />}>
+            <Route index element={<HomePage />} />
+            <Route path="bancas" element={<BancasPublicasPage />} />
+            <Route path="orientadores" element={<BuscaOrientadoresPage />} />
+            <Route path="orientadores/:id" element={<ProfessorPerfilPage />} />
+            <Route path="calendario" element={<CalendarioPage />} />
+            <Route path="entrar" element={<LoginPage />} />
+          </Route>
+
+          {/* Área logada: mesmo shell, navegação e páginas por perfil */}
+          <Route path="aluno" element={<RequireRole role="aluno" />}>
+            <Route index element={<AlunoDashboard />} />
+            <Route path="solicitar/:professorId" element={<SolicitarOrientacaoPage />} />
+            <Route path="solicitacoes" element={<MinhasSolicitacoesPage />} />
+            <Route path="solicitacoes/:id" element={<SolicitacaoDetailPage />} />
+            <Route path="etapas" element={<EtapasPage />} />
+            <Route path="cronograma" element={<SchedulePage />} />
+            <Route path="documentos" element={<DocumentsPage />} />
+            <Route path="feedbacks" element={<FeedbacksPage />} />
+            <Route path="banca" element={<BancasPage />} />
+          </Route>
+
+          <Route path="orientador" element={<RequireRole role="orientador" />}>
+            <Route index element={<OrientadorDashboard />} />
+            <Route path="orientandos" element={<TccListPage />} />
+            <Route path="orientandos/:id" element={<TccDetailPage />} />
+            <Route path="solicitacoes" element={<SolicitacoesRecebidasPage />} />
+            <Route path="solicitacoes/:id" element={<SolicitacaoDetailPage />} />
+            <Route path="perfil" element={<PerfilPublicoPage />} />
+            <Route path="cronogramas" element={<SchedulePage />} />
+            <Route path="entregas" element={<DocumentsPage />} />
+            <Route path="bancas" element={<BancasPage />} />
+          </Route>
+
+          <Route path="coordenacao" element={<RequireRole role="coordenacao" />}>
+            <Route index element={<CoordenacaoDashboard />} />
+            <Route path="tccs" element={<TccListPage />} />
+            <Route path="tccs/:id" element={<TccDetailPage />} />
+            <Route path="orientadores" element={<OrientadoresPage />} />
+            <Route path="prazos" element={<PrazosPage />} />
+            <Route path="bancas" element={<BancasPage />} />
+          </Route>
+
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </AuthProvider>
+    </BrowserRouter>
+  )
+}
