@@ -1,0 +1,41 @@
+@import "tailwindcss";
+
+/* Tokens visuais centralizados (Design System compartilhado entre perfis).
+   Identidade: fundo branco + azul e verde da UnB (#003366 / #006633). */
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+
+  /* Azul UnB (primária) */
+  --color-brand-50: #eef3f9;
+  --color-brand-100: #d6e2f0;
+  --color-brand-500: #1f5a99;
+  --color-brand-600: #0d4580;
+  --color-brand-700: #003366;
+  --color-brand-800: #002447;
+
+  /* Verde UnB (secundária / sucesso) */
+  --color-accent-50: #e8f3ed;
+  --color-accent-600: #006633;
+  --color-accent-700: #004d26;
+
+  --color-success: #006633;
+  --color-warning: #b45309;
+  --color-danger: #b91c1c;
+
+  --color-surface: #ffffff;
+  --color-surface-muted: #f5f7fa;
+  --color-border: #dde3ea;
+  --color-ink: #17212e;
+  --color-ink-muted: #556070;
+
+  --radius-card: 0.75rem;
+}
+
+body {
+  @apply bg-surface text-ink font-sans antialiased;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-brand-500);
+  outline-offset: 2px;
+}
