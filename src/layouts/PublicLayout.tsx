@@ -26,14 +26,14 @@ export function PublicLayout() {
       <header className="border-b border-border">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-6 gap-y-2 px-4 py-3 lg:px-8">
           <Brand />
-          <nav aria-label="Navegação pública" className="order-3 flex w-full gap-1 sm:order-none sm:w-auto">
+          <nav aria-label="Navegação pública" className="order-3 flex w-full flex-wrap gap-x-1 sm:order-none sm:w-auto">
             {links.map((l) => (
               <NavLink
                 key={l.to}
                 to={l.to}
                 end={l.end}
                 className={({ isActive }) =>
-                  cn('flex min-h-11 items-center rounded-lg px-3 text-sm font-medium', isActive ? 'bg-brand-50 text-brand-700' : 'text-ink-muted hover:text-ink')
+                  cn('flex min-h-11 items-center rounded-lg px-2.5 text-sm font-medium sm:px-3', isActive ? 'bg-brand-50 text-brand-700' : 'text-ink-muted hover:text-ink')
                 }
               >
                 {l.label}
