@@ -65,7 +65,7 @@ export const atividades: AtividadeRecord[] = [
   { id: 'at4', tccId: 't1', titulo: 'Apresentação na banca examinadora', prazo: addDays(25), status: 'pendente', tipo: 'marco' },
 
   { id: 'at5', tccId: 't2', titulo: 'Entregar projeto de pesquisa', prazo: addDays(-20), status: 'concluida', tipo: 'entrega' },
-  { id: 'at6', tccId: 't2', titulo: 'Entregar revisão bibliográfica', prazo: addDays(5), status: 'pendente', tipo: 'entrega' },
+  { id: 'at6', tccId: 't2', titulo: 'Entregar revisão bibliográfica', prazo: addDays(11), status: 'pendente', tipo: 'entrega' },
   { id: 'at7', tccId: 't2', titulo: 'Entregar projeto final do TCC 1', prazo: addDays(28), status: 'pendente', tipo: 'entrega' },
 
   { id: 'at8', tccId: 't3', titulo: 'Entregar projeto de pesquisa', prazo: addDays(-4), status: 'atrasada', tipo: 'entrega' },
@@ -75,7 +75,7 @@ export const atividades: AtividadeRecord[] = [
   { id: 'at11', tccId: 't4', titulo: 'Reunião de acompanhamento', prazo: addDays(14), status: 'pendente', tipo: 'reuniao' },
   { id: 'at12', tccId: 't4', titulo: 'Entregar capítulos de resultados', prazo: addDays(20), status: 'em_andamento', tipo: 'entrega' },
 
-  { id: 'at13', tccId: 't5', titulo: 'Entregar projeto final do TCC 1', prazo: addDays(6), status: 'pendente', tipo: 'entrega' },
+  { id: 'at13', tccId: 't5', titulo: 'Entregar projeto final do TCC 1', prazo: addDays(13), status: 'pendente', tipo: 'entrega' },
   { id: 'at14', tccId: 't5', titulo: 'Revisão bibliográfica', prazo: addDays(-15), status: 'concluida', tipo: 'entrega' },
 
   { id: 'at15', tccId: 't6', titulo: 'Enviar cópia aos membros da banca', prazo: addDays(1), status: 'pendente', tipo: 'entrega' },

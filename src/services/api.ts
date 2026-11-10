@@ -71,7 +71,7 @@ function settle<T>(data: T, empty: T): Promise<T> {
   if (mode === 'loading') return new Promise<T>(() => {})
   if (mode === 'error') {
     return new Promise<T>((_, reject) =>
-      setTimeout(() => reject(new ApiError('Não foi possível carregar os dados (erro simulado).', 500)), 400),
+      setTimeout(() => reject(new ApiError('O servidor não respondeu (erro simulado).', 500)), 400),
     )
   }
   return new Promise<T>((resolve) => setTimeout(() => resolve(mode === 'empty' ? empty : data), 350))
