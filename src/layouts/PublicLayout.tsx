@@ -9,7 +9,7 @@ import { SimulateStates } from './SimulateStates'
 const links = [
   { to: '/', label: 'Início', end: true },
   { to: '/orientadores', label: 'Orientadores' },
-  { to: '/bancas', label: 'Bancas públicas' },
+  { to: '/bancas', label: 'Bancas' },
   { to: '/calendario', label: 'Calendário' },
 ]
 
