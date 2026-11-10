@@ -9,17 +9,18 @@ import { listEventosPublicos } from '../../services/api'
 import type { EventoCalendario } from '../../types'
 
 type Vista = 'mes' | 'lista'
-type Filtro = 'todos' | 'TCC1' | 'TCC2' | 'defesa'
+type Filtro = 'todos' | 'TCC1' | 'TCC2' | 'defesa' | 'inscricao'
 
 const FILTROS: Array<{ key: Filtro; label: string; dot?: string }> = [
   { key: 'todos', label: 'Todos' },
   { key: 'TCC1', label: 'Prazos TCC 1', dot: eventDot('brand') },
   { key: 'TCC2', label: 'Prazos TCC 2', dot: eventDot('neutral') },
   { key: 'defesa', label: 'Defesas', dot: eventDot('success') },
+  { key: 'inscricao', label: 'Inscrições', dot: eventDot('warning') },
 ]
 
 const passa = (e: EventoCalendario, f: Filtro) =>
-  f === 'todos' || (f === 'defesa' ? e.tipo === 'defesa' : e.tipo === 'prazo' && e.fase === f)
+  f === 'todos' || (f === 'defesa' || f === 'inscricao' ? e.tipo === f : e.tipo === 'prazo' && e.fase === f)
 
 export default function CalendarioPage() {
   const { state, reload } = useAsync(listEventosPublicos)

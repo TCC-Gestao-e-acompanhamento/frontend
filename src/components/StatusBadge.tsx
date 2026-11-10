@@ -1,5 +1,5 @@
 import { Badge, type Tone } from '../design-system'
-import type { AtividadeStatus, BancaSituacao, DocumentoStatus, SolicitacaoStatus, TccStatus } from '../types'
+import type { AtividadeStatus, BancaSituacao, DocumentoStatus, PeriodoSituacao, SolicitacaoStatus, TccStatus } from '../types'
 
 const MAPS = {
   tcc: {
@@ -26,6 +26,11 @@ const MAPS = {
     recusada: ['danger', 'Recusada'],
     cancelada: ['neutral', 'Cancelada'],
   } satisfies Record<SolicitacaoStatus, [Tone, string]>,
+  periodo: {
+    antes: ['brand', 'Em breve'],
+    aberto: ['success', 'Inscrições abertas'],
+    encerrado: ['neutral', 'Inscrições encerradas'],
+  } satisfies Record<PeriodoSituacao, [Tone, string]>,
   banca: {
     a_definir: ['neutral', 'A definir'],
     agendada: ['brand', 'Agendada'],
@@ -39,6 +44,7 @@ type Props =
   | { kind: 'documento'; value: DocumentoStatus }
   | { kind: 'banca'; value: BancaSituacao }
   | { kind: 'solicitacao'; value: SolicitacaoStatus }
+  | { kind: 'periodo'; value: PeriodoSituacao }
 
 export function StatusBadge(props: Props) {
   const [tone, label] = (MAPS[props.kind] as Record<string, [Tone, string]>)[props.value]
