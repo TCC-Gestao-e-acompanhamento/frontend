@@ -1,8 +1,16 @@
+import type { ReactNode } from 'react'
 import { Badge } from '../design-system'
 import { formatDate } from '../lib/format'
 import type { Feedback } from '../types'
 
-export function FeedbackList({ items, showAluno = false }: { items: Feedback[]; showAluno?: boolean }) {
+interface Props {
+  items: Feedback[]
+  showAluno?: boolean
+  /** Ação opcional por item (ex.: marcar correção como resolvida). */
+  acao?: (f: Feedback) => ReactNode
+}
+
+export function FeedbackList({ items, showAluno = false, acao }: Props) {
   return (
     <ul className="space-y-3">
       {items.map((f) => (
@@ -17,6 +25,7 @@ export function FeedbackList({ items, showAluno = false }: { items: Feedback[]; 
           </div>
           <p className="text-sm">{f.texto}</p>
           {f.documentoNome && <p className="mt-2 text-xs text-ink-muted">Sobre: {f.documentoNome}</p>}
+          {acao && <div className="mt-3">{acao(f)}</div>}
         </li>
       ))}
     </ul>

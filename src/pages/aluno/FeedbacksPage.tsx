@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import { FeedbackList } from '../../components/FeedbackList'
 import { useCurrentUser } from '../../auth/useAuth'
-import { DataBoundary, PageHeader, Tabs } from '../../design-system'
+import { Button, DataBoundary, PageHeader, Tabs } from '../../design-system'
 import { useAsync } from '../../hooks/useAsync'
-import { listFeedbacks } from '../../services/api'
+import { listFeedbacks, resolverFeedback } from '../../services/api'
 
 type Filtro = 'abertas' | 'todos'
 
@@ -11,6 +11,22 @@ export default function FeedbacksPage() {
   const user = useCurrentUser()
   const [filtro, setFiltro] = useState<Filtro>('abertas')
   const { state, reload } = useAsync(() => listFeedbacks(user), [user.id])
+  const [resolvendo, setResolvendo] = useState<string>()
+  const [aviso, setAviso] = useState<string>()
+
+  const resolver = async (id: string) => {
+    setResolvendo(id)
+    setAviso(undefined)
+    try {
+      await resolverFeedback(user, id)
+      setAviso('Correção marcada como resolvida. O orientador verá a atualização.')
+      reload()
+    } catch (e) {
+      setAviso(e instanceof Error ? e.message : 'Não foi possível atualizar a correção.')
+    } finally {
+      setResolvendo(undefined)
+    }
+  }
 
   return (
     <>
@@ -25,6 +41,8 @@ export default function FeedbacksPage() {
           const abertas = d.filter((f) => f.tipo === 'correcao' && !f.resolvido)
           const lista = filtro === 'abertas' ? abertas : d
           return (
+            <>
+            {aviso && <p role="status" className="mb-4 rounded-lg border border-border bg-surface-muted p-3 text-sm">{aviso}</p>}
             <Tabs<Filtro>
               label="Filtrar feedbacks"
               value={filtro}
@@ -34,8 +52,20 @@ export default function FeedbacksPage() {
                 { key: 'todos', label: 'Todos', count: d.length },
               ]}
             >
-              {lista.length ? <FeedbackList items={lista} /> : <p className="text-sm text-ink-muted">Nenhuma correção pendente.</p>}
+              {lista.length ? (
+                <FeedbackList
+                  items={lista}
+                  acao={(f) =>
+                    f.tipo === 'correcao' && !f.resolvido ? (
+                      <Button size="sm" variant="secondary" loading={resolvendo === f.id} onClick={() => resolver(f.id)}>
+                        Marcar como resolvida
+                      </Button>
+                    ) : null
+                  }
+                />
+              ) : <p className="text-sm text-ink-muted">Nenhuma correção pendente.</p>}
             </Tabs>
+            </>
           )
         }}
       </DataBoundary>
