@@ -6,7 +6,7 @@ import { StatusBadge } from '../../components/StatusBadge'
 import { useCurrentUser } from '../../auth/useAuth'
 import { ButtonLink, DataBoundary, PageHeader, ProgressBar, SectionCard } from '../../design-system'
 import { useAsync } from '../../hooks/useAsync'
-import { formatDate, relativeDays } from '../../lib/format'
+import { plural } from '../../lib/format'
 import { listAtividades, listDocumentos, listFeedbacks, listSolicitacoes, listTccs } from '../../services/api'
 
 export default function AlunoDashboard() {
@@ -77,32 +77,21 @@ export default function AlunoDashboard() {
 
               <div className="grid gap-6 lg:grid-cols-2">
                 <SectionCard
-                  title="Próximos prazos"
-                  action={<ButtonLink to="/aluno/cronograma" variant="ghost" size="sm">Cronograma</ButtonLink>}
+                  title="O que fazer agora"
+                  description={pendentes.length ? `${plural(pendentes.length, 'atividade em aberto', 'atividades em aberto')}, da mais próxima para a mais distante` : undefined}
+                  className="lg:col-span-2"
+                  action={<ButtonLink to="/aluno/cronograma" variant="ghost" size="sm">Ver cronograma</ButtonLink>}
                 >
                   {pendentes.length === 0 ? (
-                    <p className="text-sm text-ink-muted">Sem prazos em aberto. Bom trabalho!</p>
+                    <p className="text-sm text-ink-muted">Nenhuma atividade em aberto. Bom trabalho!</p>
                   ) : (
-                    <ul className="divide-y divide-border">
-                      {pendentes.slice(0, 3).map((a) => (
-                        <li key={a.id} className="flex items-center justify-between gap-3 py-2.5 first:pt-0 last:pb-0">
-                          <span className="font-medium">{a.titulo}</span>
-                          <span className="shrink-0 text-sm text-ink-muted">
-                            {formatDate(a.prazo)} · {relativeDays(a.prazo)}
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
+                    <ActivityList items={pendentes.slice(0, 4)} />
                   )}
-                </SectionCard>
-
-                <SectionCard title="Atividades pendentes" description={`${pendentes.length} em aberto`}>
-                  {pendentes.length === 0 ? <p className="text-sm text-ink-muted">Nenhuma atividade pendente.</p> : <ActivityList items={pendentes.slice(0, 3)} />}
                 </SectionCard>
 
                 <SectionCard
                   title="Documentos e entregas"
-                  action={<ButtonLink to="/aluno/documentos" variant="ghost" size="sm">Enviar / ver todos</ButtonLink>}
+                  action={<ButtonLink to="/aluno/documentos" variant="ghost" size="sm">Abrir documentos</ButtonLink>}
                 >
                   {documentos.length === 0 ? <p className="text-sm text-ink-muted">Você ainda não enviou documentos.</p> : <DocumentList items={documentos.slice(0, 3)} />}
                 </SectionCard>
