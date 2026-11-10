@@ -2,9 +2,9 @@ import { useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { ProfessorCard } from '../../components/ProfessorCard'
 import { useCurrentUser } from '../../auth/useAuth'
-import { Button, DataBoundary, EmptyState, Field, Input, PageHeader, SectionCard, Select, Textarea } from '../../design-system'
+import { Button, ButtonLink, DataBoundary, EmptyState, Field, Input, PageHeader, SectionCard, Select, Textarea } from '../../design-system'
 import { useAsync } from '../../hooks/useAsync'
-import { createSolicitacao, getProfessorPublico, listCursos } from '../../services/api'
+import { createSolicitacao, getProfessorPublico, listCursos, listSolicitacoes } from '../../services/api'
 
 type Erros = Partial<Record<'titulo' | 'area' | 'descricao', string>>
 
@@ -13,8 +13,12 @@ export default function SolicitarOrientacaoPage() {
   const { professorId = '' } = useParams()
   const navigate = useNavigate()
   const { state, reload } = useAsync(async () => {
-    const [professor, cursos] = await Promise.all([getProfessorPublico(professorId), listCursos()])
-    return { professor, curso: cursos.find((c) => c.id === user.cursoId)?.nome ?? 'Não informado' }
+    const [professor, cursos, enviadas] = await Promise.all([getProfessorPublico(professorId), listCursos(), listSolicitacoes(user)])
+    return {
+      professor,
+      curso: cursos.find((c) => c.id === user.cursoId)?.nome ?? 'Não informado',
+      pendente: enviadas.find((s) => s.professorId === professorId && s.status === 'pendente'),
+    }
   }, [professorId, user.id])
 
   const [titulo, setTitulo] = useState('')
@@ -50,8 +54,14 @@ export default function SolicitarOrientacaoPage() {
       <Link to="/orientadores" className="mb-3 inline-block text-sm text-brand-700 hover:underline">← Voltar para a busca</Link>
       <PageHeader title="Solicitar orientação" description="Apresente sua proposta de TCC. Leva poucos minutos." />
       <DataBoundary state={state} reload={reload}>
-        {({ professor, curso }) =>
-          !professor.aceitandoSolicitacoes ? (
+        {({ professor, curso, pendente }) =>
+          pendente ? (
+            <EmptyState
+              title={`Você já pediu orientação a ${professor.nome}`}
+              description="A solicitação está pendente. Acompanhe a resposta ou cancele para enviar outra."
+              action={<ButtonLink to={`/aluno/solicitacoes/${pendente.id}`}>Ver minha solicitação</ButtonLink>}
+            />
+          ) : !professor.aceitandoSolicitacoes ? (
             <EmptyState
               title="Este professor não está recebendo solicitações"
               description="A disponibilidade é definida pelo próprio professor. Escolha outro orientador na busca."

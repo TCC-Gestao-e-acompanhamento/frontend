@@ -3,7 +3,7 @@ import { Link, useLocation, useParams } from 'react-router-dom'
 import { ResponderModal } from '../../components/ResponderModal'
 import { StatusBadge } from '../../components/StatusBadge'
 import { useCurrentUser } from '../../auth/useAuth'
-import { Button, DataBoundary, PageHeader, SectionCard } from '../../design-system'
+import { Button, ButtonLink, DataBoundary, PageHeader, SectionCard } from '../../design-system'
 import { useAsync } from '../../hooks/useAsync'
 import { formatDate } from '../../lib/format'
 import { cancelSolicitacao, getSolicitacao } from '../../services/api'
@@ -17,6 +17,8 @@ export default function SolicitacaoDetailPage() {
   const { state, reload } = useAsync(() => getSolicitacao(user, id), [user.id, id])
   const [decisao, setDecisao] = useState<'aceita' | 'recusada' | null>(null)
   const [cancelando, setCancelando] = useState(false)
+  const [confirmando, setConfirmando] = useState(false)
+  const [aviso, setAviso] = useState<string>()
   const [erro, setErro] = useState<string>()
   const aluno = user.role === 'aluno'
   const voltar = aluno ? '/aluno/solicitacoes' : '/orientador/solicitacoes'
@@ -26,6 +28,8 @@ export default function SolicitacaoDetailPage() {
     setErro(undefined)
     try {
       await cancelSolicitacao(user, id)
+      setConfirmando(false)
+      setAviso('Solicitação cancelada. Você pode enviar uma nova ao mesmo professor ou escolher outro.')
       reload()
     } catch (e) {
       setErro(e instanceof Error ? e.message : 'Não foi possível cancelar.')
@@ -40,7 +44,8 @@ export default function SolicitacaoDetailPage() {
       <DataBoundary state={state} reload={reload}>
         {(s) => (
           <div className="space-y-6">
-            {enviada && (
+            {aviso && <p role="status" className="rounded-lg border border-border bg-surface-muted p-3 text-sm">{aviso}</p>}
+            {enviada && !aviso && (
               <p role="status" className="rounded-lg border border-success/30 bg-accent-50 p-3 text-sm text-success">
                 Solicitação enviada. {s.professorNome} será avisado(a) e você acompanha a resposta aqui.
               </p>
@@ -82,7 +87,23 @@ export default function SolicitacaoDetailPage() {
 
             {erro && <p role="alert" className="text-sm text-danger">{erro}</p>}
             {s.status === 'pendente' && aluno && (
-              <Button variant="secondary" loading={cancelando} onClick={cancelar}>Cancelar solicitação</Button>
+              confirmando ? (
+                <div role="group" aria-label="Confirmar cancelamento" className="space-y-3 rounded-lg border border-border p-4">
+                  <p className="text-sm">Cancelar esta solicitação? O professor deixa de vê-la como pendente e não é possível desfazer.</p>
+                  <div className="flex gap-3">
+                    <Button variant="danger" loading={cancelando} onClick={cancelar}>Sim, cancelar solicitação</Button>
+                    <Button variant="secondary" onClick={() => setConfirmando(false)}>Manter solicitação</Button>
+                  </div>
+                </div>
+              ) : (
+                <Button variant="secondary" onClick={() => setConfirmando(true)}>Cancelar solicitação</Button>
+              )
+            )}
+            {s.status === 'cancelada' && aluno && (
+              <ButtonLink to="/orientadores" variant="secondary">Buscar outro orientador</ButtonLink>
+            )}
+            {s.status === 'recusada' && aluno && (
+              <ButtonLink to="/orientadores">Buscar outro orientador</ButtonLink>
             )}
             {s.status === 'pendente' && !aluno && (
               <div className="flex gap-3">
@@ -90,7 +111,7 @@ export default function SolicitacaoDetailPage() {
                 <Button variant="secondary" onClick={() => setDecisao('recusada')}>Recusar</Button>
               </div>
             )}
-            <ResponderModal solicitacao={decisao ? s : null} decisao={decisao ?? 'aceita'} onClose={() => setDecisao(null)} onDone={reload} />
+            <ResponderModal solicitacao={decisao ? s : null} decisao={decisao ?? 'aceita'} onClose={() => setDecisao(null)} onDone={(m) => { setAviso(m); reload() }} />
           </div>
         )}
       </DataBoundary>
