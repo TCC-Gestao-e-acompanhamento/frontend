@@ -231,6 +231,8 @@ export default function InscricaoPage() {
   }, [user.id])
   const [editando, setEditando] = useState(false)
   const [recemEnviada, setRecemEnviada] = useState(false)
+  // Resultado local da última ação: evita mostrar dados antigos enquanto a lista recarrega.
+  const [local, setLocal] = useState<{ valor: Inscricao | null }>()
 
   return (
     <>
@@ -241,8 +243,9 @@ export default function InscricaoPage() {
         isEmpty={(d) => !d.periodo}
         empty={{ title: 'Período de inscrição ainda não definido', description: 'A coordenação divulga as datas aqui e no calendário acadêmico.' }}
       >
-        {({ periodo, minha, professores, sugestaoProfessorId }) => {
+        {({ periodo, minha: minhaServidor, professores, sugestaoProfessorId }) => {
           if (!periodo) return null
+          const minha = local ? local.valor : minhaServidor
           const aberto = periodo.situacao === 'aberto'
           return (
             <div className="space-y-6">
@@ -253,14 +256,14 @@ export default function InscricaoPage() {
                   aberto={aberto}
                   recemEnviada={recemEnviada}
                   onEditar={() => { setEditando(true); setRecemEnviada(false) }}
-                  onCancelada={() => { setRecemEnviada(false); reload() }}
+                  onCancelada={() => { setRecemEnviada(false); setLocal({ valor: null }); reload() }}
                 />
               ) : aberto ? (
                 <InscricaoForm
                   professores={professores}
                   inicial={editando ? (minha ?? undefined) : undefined}
                   sugestaoProfessorId={sugestaoProfessorId}
-                  onSaved={() => { setEditando(false); setRecemEnviada(true); reload() }}
+                  onSaved={(salva) => { setLocal({ valor: salva }); setEditando(false); setRecemEnviada(true); reload() }}
                   onCancel={editando ? () => setEditando(false) : undefined}
                 />
               ) : (
