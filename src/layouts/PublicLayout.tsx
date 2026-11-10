@@ -1,4 +1,4 @@
-import { NavLink, Outlet } from 'react-router-dom'
+import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '../auth/useAuth'
 import { ButtonLink } from '../design-system'
 import { cn } from '../lib/format'
@@ -16,6 +16,8 @@ const links = [
 /** Layout da área pública: sem login, com dados institucionais abertos. */
 export function PublicLayout() {
   const { user } = useAuth()
+  // A página inicial controla a própria largura (faixas de cor de ponta a ponta).
+  const larguraTotal = useLocation().pathname === '/'
   return (
     <div className="flex min-h-screen flex-col bg-surface">
       <a href="#conteudo" className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:rounded-lg focus:bg-brand-700 focus:px-4 focus:py-2 focus:text-white">
@@ -46,7 +48,7 @@ export function PublicLayout() {
         </div>
       </header>
 
-      <main id="conteudo" tabIndex={-1} className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 lg:px-8">
+      <main id="conteudo" tabIndex={-1} className={larguraTotal ? 'w-full flex-1' : 'mx-auto w-full max-w-6xl flex-1 px-4 py-8 lg:px-8'}>
         <Outlet />
       </main>
 

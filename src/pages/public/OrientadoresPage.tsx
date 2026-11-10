@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { ProfessorCard } from '../../components/ProfessorCard'
 import { SolicitarButton } from '../../components/SolicitarButton'
 import { Checkbox, DataBoundary, Field, Icon, Input, PageHeader, Select, ButtonLink } from '../../design-system'
@@ -11,9 +12,10 @@ export default function OrientadoresPage() {
     const [professores, cursos, areas] = await Promise.all([listProfessoresPublicos(), listCursos(), listAreas()])
     return { professores, cursos, areas }
   })
-  const [busca, setBusca] = useState('')
-  const [curso, setCurso] = useState('')
-  const [area, setArea] = useState('')
+  const [params] = useSearchParams()
+  const [busca, setBusca] = useState(params.get('q') ?? '')
+  const [curso, setCurso] = useState(params.get('curso') ?? '')
+  const [area, setArea] = useState(params.get('area') ?? '')
   const [soDisponiveis, setSoDisponiveis] = useState(false)
 
   const limpar = () => {
