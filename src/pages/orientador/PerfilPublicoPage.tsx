@@ -48,7 +48,7 @@ function PerfilForm({ inicial, cursos, catalogo }: { inicial: ProfessorPublico; 
   const sugestoes = catalogo.filter((a) => !areas.some((x) => x.toLowerCase() === a.nome.toLowerCase()))
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[1fr_22rem]">
+    <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_22rem]">
       <form onSubmit={submit} className="space-y-6">
         <SectionCard title="Disponibilidade">
           <Checkbox label="Estou recebendo novas solicitações de orientação" checked={aceitando} onChange={(e) => { setAceitando(e.target.checked); setMsg(null) }} />
@@ -65,7 +65,7 @@ function PerfilForm({ inicial, cursos, catalogo }: { inicial: ProfessorPublico; 
         <SectionCard title="Cursos de atuação">
           <fieldset>
             <legend className="sr-only">Cursos de atuação</legend>
-            <div className="grid gap-1 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-1 sm:grid-cols-2">
               {cursos.map((c) => (
                 <Checkbox
                   key={c.id}

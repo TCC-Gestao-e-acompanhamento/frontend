@@ -25,7 +25,7 @@ export default function HomePage() {
   return (
     <>
       <section className="bg-brand-700 text-white">
-        <div className="mx-auto grid max-w-6xl gap-10 px-4 py-12 lg:grid-cols-[1.2fr_1fr] lg:items-center lg:px-8 lg:py-16">
+        <div className="mx-auto grid max-w-6xl grid-cols-1 gap-10 px-4 py-12 lg:grid-cols-[1.2fr_1fr] lg:items-center lg:px-8 lg:py-16">
           <div>
             <h1 className="max-w-xl text-3xl font-semibold tracking-tight text-balance sm:text-4xl">
               Encontre um orientador e acompanhe seu TCC na UnB

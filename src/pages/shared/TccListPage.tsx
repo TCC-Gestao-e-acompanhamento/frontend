@@ -23,7 +23,7 @@ export default function TccListPage() {
         description={coord ? 'Todos os trabalhos do semestre, com etapa, orientador e situação.' : 'Situação e etapa atual de cada trabalho que você orienta.'}
       />
       <div className="space-y-4">
-        <div className="grid gap-4 rounded-card border border-border p-4 sm:grid-cols-[2fr_1fr_1fr]">
+        <div className="grid grid-cols-1 gap-4 rounded-card border border-border p-4 sm:grid-cols-[2fr_1fr_1fr]">
           <Field label="Buscar por aluno, orientador ou título">
             {(p) => (
               <div className="relative">

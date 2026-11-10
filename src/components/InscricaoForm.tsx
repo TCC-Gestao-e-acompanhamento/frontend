@@ -58,7 +58,7 @@ export function InscricaoForm({ professores, alunoNome, matricula, inicial, suge
 
   return (
     <form onSubmit={submit} noValidate className="space-y-4">
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Field label="Nome">{(p) => <Input {...p} value={alunoNome} readOnly className="bg-surface-muted" />}</Field>
         <Field label="Matrícula">{(p) => <Input {...p} value={matricula} readOnly className="bg-surface-muted" />}</Field>
       </div>
@@ -86,7 +86,7 @@ export function InscricaoForm({ professores, alunoNome, matricula, inicial, suge
       </Field>
 
       {professor === OUTRO && (
-        <div className="grid gap-4 rounded-lg bg-surface-muted p-4 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 rounded-lg bg-surface-muted p-4 sm:grid-cols-2">
           <Field label="Nome do orientador" error={erros.nome}>{(p) => <Input {...p} value={nome} onChange={(e) => setNome(e.target.value)} autoComplete="off" />}</Field>
           <Field label="E-mail da UnB do orientador" error={erros.email} hint="Ele será avisado neste endereço.">
             {(p) => <Input {...p} type="email" inputMode="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="nome@unb.br" autoComplete="off" />}

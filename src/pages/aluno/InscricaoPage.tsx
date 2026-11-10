@@ -17,7 +17,7 @@ function Resumo({ i, recemEnviada }: { i: Inscricao; recemEnviada: boolean }) {
         </p>
       )}
       <SectionCard title="Sua inscrição" description={`Semestre ${i.semestre}`} action={<Badge tone="success">Inscrição enviada</Badge>}>
-        <dl className="grid gap-4 text-sm sm:grid-cols-2">
+        <dl className="grid grid-cols-1 gap-4 text-sm sm:grid-cols-2">
           <div><dt className="text-ink-muted">Nome</dt><dd className="font-medium">{i.alunoNome}</dd></div>
           <div><dt className="text-ink-muted">Matrícula</dt><dd className="font-medium">{i.matricula}</dd></div>
           <div><dt className="text-ink-muted">TCC</dt><dd className="font-medium">{i.fase === 'TCC1' ? 'TCC 1' : 'TCC 2'}</dd></div>

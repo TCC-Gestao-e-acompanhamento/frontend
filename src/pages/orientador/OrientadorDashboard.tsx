@@ -94,7 +94,7 @@ export default function OrientadorDashboard() {
                 {tccs.length ? <TccTable items={tccs} basePath="/orientador/orientandos" caption="Situação dos orientandos" /> : <p className="text-sm text-ink-muted">Nenhum orientando vinculado ainda.</p>}
               </SectionCard>
 
-              <div className="grid gap-6 lg:grid-cols-2">
+              <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
                 <SectionCard title="Entregas pendentes de análise" action={<Link to="/orientador/entregas" className="text-sm font-medium text-brand-700 hover:underline">Ver entregas</Link>}>
                   {analise.length ? <DocumentList items={analise} showAluno /> : <p className="text-sm text-ink-muted">Nenhuma entrega aguardando análise.</p>}
                 </SectionCard>

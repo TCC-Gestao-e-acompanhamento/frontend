@@ -129,7 +129,7 @@ function Conteudo({ todos, vista, setVista, filtro, setFiltro, mes, setMes, dia,
         ]}
       >
         {vista === 'mes' ? (
-          <div className="grid gap-6 lg:grid-cols-[1fr_20rem]">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_20rem]">
             <Calendar month={mes} events={doCalendario} selected={dia} onSelect={setDia} onMonthChange={setMes} />
             <section aria-labelledby="dia-title" aria-live="polite" className="rounded-card border border-border p-5 lg:self-start">
               <h2 id="dia-title" className="text-base font-semibold">{formatDateLong(dia)}</h2>

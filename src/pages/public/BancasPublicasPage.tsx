@@ -25,7 +25,7 @@ export default function BancasPublicasPage() {
               <section aria-labelledby="prox">
                 <h2 id="prox" className="mb-3 text-lg font-semibold">Próximas defesas</h2>
                 {proximas.length ? (
-                  <div className="grid gap-4 md:grid-cols-2">{proximas.map((b) => <BancaCard key={b.id} banca={b} />)}</div>
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">{proximas.map((b) => <BancaCard key={b.id} banca={b} />)}</div>
                 ) : (
                   <p className="text-sm text-ink-muted">Nenhuma defesa agendada no momento.</p>
                 )}
@@ -33,7 +33,7 @@ export default function BancasPublicasPage() {
               <section aria-labelledby="real">
                 <h2 id="real" className="mb-3 text-lg font-semibold">Defesas realizadas</h2>
                 {realizadas.length ? (
-                  <div className="grid gap-4 md:grid-cols-2">{realizadas.map((b) => <BancaCard key={b.id} banca={b} />)}</div>
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">{realizadas.map((b) => <BancaCard key={b.id} banca={b} />)}</div>
                 ) : (
                   <p className="text-sm text-ink-muted">Ainda não há defesas realizadas neste semestre.</p>
                 )}

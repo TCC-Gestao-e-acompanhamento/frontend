@@ -43,7 +43,7 @@ function PeriodoCard({ periodo, onSaved }: { periodo: PeriodoInscricao | null; o
     >
       {editando ? (
         <form onSubmit={salvar} noValidate className="space-y-4">
-          <div className="grid gap-4 sm:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <Field label="Semestre" hint="Ex.: 2027/1">{(p) => <Input {...p} value={semestre} onChange={(e) => setSemestre(e.target.value)} />}</Field>
             <Field label="Início das inscrições">{(p) => <Input {...p} type="date" value={inicio} onChange={(e) => setInicio(e.target.value)} />}</Field>
             <Field label="Fim das inscrições">{(p) => <Input {...p} type="date" value={fim} onChange={(e) => setFim(e.target.value)} />}</Field>
@@ -216,7 +216,7 @@ export default function InscricoesPage() {
                   <EmptyState title="Ninguém se inscreveu ainda" description="Os inscritos aparecem aqui assim que os alunos enviarem a inscrição." />
                 ) : (
                   <div className="space-y-4">
-                    <div className="grid gap-4 sm:grid-cols-[2fr_1fr]">
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-[2fr_1fr]">
                       <Field label="Buscar por aluno, matrícula ou orientador">{(p) => <Input {...p} type="search" value={busca} onChange={(e) => setBusca(e.target.value)} />}</Field>
                       <Field label="TCC">
                         {(p) => (

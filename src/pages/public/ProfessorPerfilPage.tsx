@@ -29,7 +29,7 @@ export default function ProfessorPerfilPage() {
               {p.apresentacao ? <p>{p.apresentacao}</p> : <p className="text-sm text-ink-muted">O professor ainda não publicou uma apresentação.</p>}
             </SectionCard>
 
-            <div className="grid gap-6 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
               <SectionCard title="Cursos">
                 {p.cursos.length ? <ul className="space-y-1">{p.cursos.map((c) => <li key={c.id}>{c.nome}</li>)}</ul> : <p className="text-sm text-ink-muted">Não informado.</p>}
               </SectionCard>

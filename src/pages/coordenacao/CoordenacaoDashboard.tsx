@@ -60,7 +60,7 @@ export default function CoordenacaoDashboard() {
                 <StatCard label="Trabalhos com pendências" value={pendentes.length} tone={pendentes.length ? 'danger' : 'default'} hint="Prazo próximo ou atrasados" />
               </StatGroup>
 
-              <div className="grid gap-6 lg:grid-cols-2">
+              <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
                 <SectionCard title="Distribuição entre TCC 1 e TCC 2">
                   <div className="space-y-4">
                     {[{ nome: 'TCC 1', n: tcc1 }, { nome: 'TCC 2', n: tcc2 }].map((f) => (
@@ -87,7 +87,7 @@ export default function CoordenacaoDashboard() {
                 {pendentes.length ? <TccTable items={pendentes} basePath="/coordenacao/tccs" showOrientador caption="TCCs com pendências" /> : <p className="text-sm text-ink-muted">Nenhum trabalho com pendências.</p>}
               </SectionCard>
 
-              <div className="grid gap-6 lg:grid-cols-2">
+              <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
                 <SectionCard title="Prazos institucionais" action={<ButtonLink to="/coordenacao/prazos" variant="ghost" size="sm">Ver tudo</ButtonLink>}>
                   <DeadlineList items={prazos.slice(0, 3)} />
                 </SectionCard>

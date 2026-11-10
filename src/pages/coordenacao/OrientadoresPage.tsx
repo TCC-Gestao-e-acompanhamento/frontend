@@ -21,7 +21,7 @@ export default function OrientadoresPage() {
             return m.set(t.orientador.id, g)
           }, new Map())
           return (
-            <div className="grid gap-6 lg:grid-cols-2">
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
               {[...grupos.values()].map(({ orientador, tccs: lista }) => (
                 <SectionCard key={orientador.id} title={orientador.nome} description={`${plural(lista.length, 'orientando', 'orientandos')} · ${orientador.email}`}>
                   <ul className="divide-y divide-border">

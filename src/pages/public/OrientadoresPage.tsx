@@ -48,7 +48,7 @@ export default function OrientadoresPage() {
           )
           return (
             <div className="space-y-6">
-              <form role="search" aria-label="Filtrar orientadores" onSubmit={(e) => e.preventDefault()} className="grid gap-4 rounded-card border border-border p-4 sm:grid-cols-2 lg:grid-cols-[2fr_1fr_1fr]">
+              <form role="search" aria-label="Filtrar orientadores" onSubmit={(e) => e.preventDefault()} className="grid grid-cols-1 gap-4 rounded-card border border-border p-4 sm:grid-cols-2 lg:grid-cols-[2fr_1fr_1fr]">
                 <Field label="Nome do professor">
                   {(p) => (
                     <div className="relative">
@@ -86,7 +86,7 @@ export default function OrientadoresPage() {
                   <button type="button" onClick={limpar} className="mt-3 min-h-11 text-sm font-medium text-brand-700 hover:underline">Limpar filtros</button>
                 </div>
               ) : (
-                <ul className="grid gap-4 md:grid-cols-2">
+                <ul className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   {lista.map((p) => (
                     <li key={p.id}>
                       <ProfessorCard

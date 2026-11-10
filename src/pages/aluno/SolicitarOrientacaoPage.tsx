@@ -68,11 +68,11 @@ export default function SolicitarOrientacaoPage() {
               action={<Link to="/orientadores" className="min-h-11 text-sm font-medium text-brand-700 hover:underline">Voltar para a busca</Link>}
             />
           ) : (
-            <div className="grid gap-6 xl:grid-cols-[1fr_22rem]">
+            <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1fr_22rem]">
               <form onSubmit={submit} noValidate className="space-y-5 xl:order-1">
                 <SectionCard title="Sua proposta">
-                  <div className="grid gap-4">
-                    <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="grid grid-cols-1 gap-4">
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                       <Field label="Aluno" hint="Identificado pela sua sessão.">{(p) => <Input {...p} value={user.nome} readOnly className="bg-surface-muted" />}</Field>
                       <Field label="Curso" hint="Conforme seu cadastro.">{(p) => <Input {...p} value={curso} readOnly className="bg-surface-muted" />}</Field>
                     </div>

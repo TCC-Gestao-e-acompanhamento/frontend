@@ -85,7 +85,7 @@ export default function TccDetailPage() {
           <div className="space-y-6">
             <PageHeader title={tcc.titulo} description={`${tcc.aluno.nome} · orientação de ${tcc.orientador.nome} · ${tcc.semestre}`} actions={<StatusBadge kind="tcc" value={tcc.status} />} />
             <SectionCard title="Resumo">
-              <div className="grid gap-4 sm:grid-cols-3">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                 <div>
                   <p className="text-xs font-semibold tracking-wide text-ink-muted uppercase">{tcc.fase === 'TCC1' ? 'TCC 1' : 'TCC 2'}</p>
                   <p className="font-medium">{tcc.etapaAtual}</p>

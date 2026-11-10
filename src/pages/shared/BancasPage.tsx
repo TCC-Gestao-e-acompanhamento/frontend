@@ -25,7 +25,7 @@ export default function BancasPage() {
         isEmpty={(d) => d.length === 0}
         empty={{ title: 'Nenhuma banca registrada', description: 'A banca aparece aqui após ser definida.' }}
       >
-        {(d) => <div className="grid gap-4 md:grid-cols-2">{d.map((b) => <BancaCard key={b.id} banca={b} />)}</div>}
+        {(d) => <div className="grid grid-cols-1 gap-4 md:grid-cols-2">{d.map((b) => <BancaCard key={b.id} banca={b} />)}</div>}
       </DataBoundary>
     </>
   )

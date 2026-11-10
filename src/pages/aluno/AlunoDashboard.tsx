@@ -80,7 +80,7 @@ export default function AlunoDashboard() {
                 </div>
               </SectionCard>
 
-              <div className="grid gap-6 lg:grid-cols-2">
+              <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
                 <SectionCard
                   title="O que fazer agora"
                   description={pendentes.length ? `${plural(pendentes.length, 'atividade em aberto', 'atividades em aberto')}, da mais próxima para a mais distante` : undefined}

@@ -39,7 +39,7 @@ export default function LoginPage() {
           Para solicitar orientação, entre como aluno. Depois do login você volta ao formulário do professor escolhido.
         </p>
       )}
-      <ul className="grid gap-3">
+      <ul className="grid grid-cols-1 gap-3">
         {PERFIS.map((p) => (
           <li key={p.id}>
             <Card className="transition-colors hover:border-brand-500">

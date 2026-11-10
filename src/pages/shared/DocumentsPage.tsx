@@ -43,7 +43,7 @@ function UploadForm({ onSent }: { onSent: () => void }) {
 
   return (
     <SectionCard title="Enviar documento" description="Para enviar uma nova versão, use o mesmo nome do documento anterior.">
-      <form onSubmit={submit} noValidate className="grid gap-4 sm:grid-cols-2">
+      <form onSubmit={submit} noValidate className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Field label="Nome do documento" error={erros.nome}>
           {(p) => <Input {...p} value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Ex.: Monografia" />}
         </Field>

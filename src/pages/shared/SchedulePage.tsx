@@ -72,7 +72,7 @@ export default function SchedulePage() {
               ]}
             >
               {vista === 'mes' ? (
-                <div className="grid gap-6 lg:grid-cols-[1fr_22rem]">
+                <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_22rem]">
                   <Calendar month={mes} events={eventos} selected={dia} onSelect={setDia} onMonthChange={setMes} />
                   <section aria-labelledby="dia-ativ" aria-live="polite" className="rounded-card border border-border p-5 lg:self-start">
                     <h2 id="dia-ativ" className="mb-3 text-base font-semibold">{formatDateLong(dia)}</h2>
