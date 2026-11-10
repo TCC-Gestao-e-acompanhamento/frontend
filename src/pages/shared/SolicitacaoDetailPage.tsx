@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Link, useLocation, useParams } from 'react-router-dom'
 import { ResponderModal } from '../../components/ResponderModal'
 import { StatusBadge } from '../../components/StatusBadge'
@@ -9,15 +9,21 @@ import { formatDate } from '../../lib/format'
 import { cancelSolicitacao, getSolicitacao } from '../../services/api'
 
 /** Detalhe: aluno acompanha/cancela; professor destinatário aceita ou recusa. */
+/** `key={id}` zera avisos e confirmação ao trocar de solicitação (o componente seria reaproveitado). */
 export default function SolicitacaoDetailPage() {
-  const user = useCurrentUser()
   const { id = '' } = useParams()
+  return <SolicitacaoDetail key={id} id={id} />
+}
+
+function SolicitacaoDetail({ id }: { id: string }) {
+  const user = useCurrentUser()
   const location = useLocation()
   const enviada = (location.state as { enviada?: boolean } | null)?.enviada
   const { state, reload } = useAsync(() => getSolicitacao(user, id), [user.id, id])
   const [decisao, setDecisao] = useState<'aceita' | 'recusada' | null>(null)
   const [cancelando, setCancelando] = useState(false)
   const [confirmando, setConfirmando] = useState(false)
+  const botaoCancelar = useRef<HTMLButtonElement>(null)
   const [aviso, setAviso] = useState<string>()
   const [erro, setErro] = useState<string>()
   const aluno = user.role === 'aluno'
@@ -92,11 +98,21 @@ export default function SolicitacaoDetailPage() {
                   <p className="text-sm">Cancelar esta solicitação? O professor deixa de vê-la como pendente e não é possível desfazer.</p>
                   <div className="flex gap-3">
                     <Button variant="danger" loading={cancelando} onClick={cancelar}>Sim, cancelar solicitação</Button>
-                    <Button variant="secondary" onClick={() => setConfirmando(false)}>Manter solicitação</Button>
+                    <Button
+                      variant="secondary"
+                      autoFocus
+                      onClick={() => {
+                        setConfirmando(false)
+                        // devolve o foco ao botão de origem
+                        requestAnimationFrame(() => botaoCancelar.current?.focus())
+                      }}
+                    >
+                      Manter solicitação
+                    </Button>
                   </div>
                 </div>
               ) : (
-                <Button variant="secondary" onClick={() => setConfirmando(true)}>Cancelar solicitação</Button>
+                <Button ref={botaoCancelar} variant="secondary" onClick={() => setConfirmando(true)}>Cancelar solicitação</Button>
               )
             )}
             {s.status === 'cancelada' && aluno && (

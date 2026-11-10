@@ -45,7 +45,7 @@ const toneText = { default: 'text-ink', warning: 'text-warning', danger: 'text-d
 /** Indicadores lado a lado, separados por filetes finos dentro de uma única moldura. */
 export function StatGroup({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <div className={cn('grid gap-px overflow-hidden rounded-card border border-border bg-border sm:grid-cols-2 lg:grid-flow-col lg:auto-cols-fr', className)}>
+    <div className={cn('grid gap-px overflow-hidden rounded-card border border-border bg-border sm:grid-cols-2 sm:[&>:last-child:nth-child(odd)]:col-span-2 lg:grid-flow-col lg:grid-cols-none lg:auto-cols-fr lg:[&>:last-child:nth-child(odd)]:col-span-1', className)}>
       {children}
     </div>
   )

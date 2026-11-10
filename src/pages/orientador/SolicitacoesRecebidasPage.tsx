@@ -53,8 +53,8 @@ export default function SolicitacoesRecebidasPage() {
                         actions={
                           s.status === 'pendente' && (
                             <>
-                              <Button size="sm" onClick={() => setAlvo({ s, decisao: 'aceita' })}>Aceitar</Button>
-                              <Button size="sm" variant="secondary" onClick={() => setAlvo({ s, decisao: 'recusada' })}>Recusar</Button>
+                              <Button size="sm" onClick={() => { setAviso(undefined); setAlvo({ s, decisao: 'aceita' }) }}>Aceitar</Button>
+                              <Button size="sm" variant="secondary" onClick={() => { setAviso(undefined); setAlvo({ s, decisao: 'recusada' }) }}>Recusar</Button>
                             </>
                           )
                         }

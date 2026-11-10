@@ -4,6 +4,9 @@ export function PageHeader({ title, description, actions }: { title: string; des
   // Cada rota anuncia seu nome na aba e para leitores de tela.
   useEffect(() => {
     document.title = `${title} · Gestão de TCC`
+    return () => {
+      document.title = 'Gestão de TCC'
+    }
   }, [title])
   return (
     <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
