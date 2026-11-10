@@ -6,13 +6,16 @@ import AlunoDashboard from './pages/aluno/AlunoDashboard'
 import EtapasPage from './pages/aluno/EtapasPage'
 import FeedbacksPage from './pages/aluno/FeedbacksPage'
 import CoordenacaoDashboard from './pages/coordenacao/CoordenacaoDashboard'
+import CoordInscricoesPage from './pages/coordenacao/InscricoesPage'
 import OrientadoresPage from './pages/coordenacao/OrientadoresPage'
 import PrazosPage from './pages/coordenacao/PrazosPage'
 import OrientadorDashboard from './pages/orientador/OrientadorDashboard'
 import BancasPublicasPage from './pages/public/BancasPublicasPage'
 import CalendarioPage from './pages/public/CalendarioPage'
 import MinhasSolicitacoesPage from './pages/aluno/MinhasSolicitacoesPage'
+import InscricaoPage from './pages/aluno/InscricaoPage'
 import SolicitarOrientacaoPage from './pages/aluno/SolicitarOrientacaoPage'
+import InscricoesRecebidasPage from './pages/orientador/InscricoesPage'
 import PerfilPublicoPage from './pages/orientador/PerfilPublicoPage'
 import SolicitacoesRecebidasPage from './pages/orientador/SolicitacoesRecebidasPage'
 import BuscaOrientadoresPage from './pages/public/OrientadoresPage'
@@ -44,6 +47,7 @@ export default function App() {
           {/* Área logada: mesmo shell, navegação e páginas por perfil */}
           <Route path="aluno" element={<RequireRole role="aluno" />}>
             <Route index element={<AlunoDashboard />} />
+            <Route path="inscricao" element={<InscricaoPage />} />
             <Route path="solicitar/:professorId" element={<SolicitarOrientacaoPage />} />
             <Route path="solicitacoes" element={<MinhasSolicitacoesPage />} />
             <Route path="solicitacoes/:id" element={<SolicitacaoDetailPage />} />
@@ -60,6 +64,7 @@ export default function App() {
             <Route path="orientandos/:id" element={<TccDetailPage />} />
             <Route path="solicitacoes" element={<SolicitacoesRecebidasPage />} />
             <Route path="solicitacoes/:id" element={<SolicitacaoDetailPage />} />
+            <Route path="inscricoes" element={<InscricoesRecebidasPage />} />
             <Route path="perfil" element={<PerfilPublicoPage />} />
             <Route path="cronogramas" element={<SchedulePage />} />
             <Route path="entregas" element={<DocumentsPage />} />
@@ -70,6 +75,7 @@ export default function App() {
             <Route index element={<CoordenacaoDashboard />} />
             <Route path="tccs" element={<TccListPage />} />
             <Route path="tccs/:id" element={<TccDetailPage />} />
+            <Route path="inscricoes" element={<CoordInscricoesPage />} />
             <Route path="orientadores" element={<OrientadoresPage />} />
             <Route path="prazos" element={<PrazosPage />} />
             <Route path="bancas" element={<BancasPage />} />

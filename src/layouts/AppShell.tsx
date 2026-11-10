@@ -2,6 +2,8 @@ import { useState, type ReactNode } from 'react'
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useCurrentUser, useAuth } from '../auth/useAuth'
 import { Badge, Button, Icon } from '../design-system'
+import { useAsync } from '../hooks/useAsync'
+import { contarInscricoesNovas } from '../services/api'
 import { cn, initials } from '../lib/format'
 import { NAV, ROLE_LABEL } from '../routes/navigation'
 import { Brand } from './Brand'
@@ -16,6 +18,9 @@ export function AppShell({ children }: { children: ReactNode }) {
   // Menu móvel aberto somente na rota em que foi aberto: fecha sozinho ao navegar.
   const [openAt, setOpenAt] = useState<string | null>(null)
   const open = openAt === pathname
+  // Contador de inscrições novas (orientador); atualiza a cada navegação.
+  const novas = useAsync(() => contarInscricoesNovas(user), [user.id, pathname])
+  const totalNovas = novas.state.status === 'success' ? novas.state.data : 0
 
   const sair = () => {
     logout()
@@ -38,6 +43,12 @@ export function AppShell({ children }: { children: ReactNode }) {
         >
           <Icon name={item.icon} />
           {item.label}
+          {item.contador && totalNovas > 0 && (
+            <>
+              <span aria-hidden="true" className="ml-auto rounded-full bg-warning px-2 py-0.5 text-xs font-semibold text-white">{totalNovas}</span>
+              <span className="sr-only">, {totalNovas} {totalNovas === 1 ? 'nova' : 'novas'}</span>
+            </>
+          )}
         </NavLink>
       ))}
     </nav>
@@ -78,7 +89,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
       </header>
 
-      <div className="lg:grid lg:grid-cols-[16rem_1fr]">
+      <div className="lg:grid lg:grid-cols-[16rem_minmax(0,1fr)]">
         <aside
           id="menu-lateral"
           className={cn(

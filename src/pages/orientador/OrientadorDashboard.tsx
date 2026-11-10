@@ -8,7 +8,7 @@ import { TccTable } from '../../components/TccTable'
 import { useCurrentUser } from '../../auth/useAuth'
 import { Button, ButtonLink, DataBoundary, PageHeader, SectionCard, StatCard, StatGroup } from '../../design-system'
 import { useAsync } from '../../hooks/useAsync'
-import { listAtividades, listDocumentos, listSolicitacoes, listTccs } from '../../services/api'
+import { listAtividades, listDocumentos, listInscricoes, listSolicitacoes, listTccs } from '../../services/api'
 import { plural } from '../../lib/format'
 import type { Solicitacao } from '../../types'
 
@@ -17,13 +17,14 @@ export default function OrientadorDashboard() {
   const [aviso, setAviso] = useState<string>()
   const [alvo, setAlvo] = useState<{ s: Solicitacao; decisao: 'aceita' | 'recusada' } | null>(null)
   const { state, reload } = useAsync(async () => {
-    const [tccs, atividades, documentos, solicitacoes] = await Promise.all([
+    const [tccs, atividades, documentos, solicitacoes, inscricoes] = await Promise.all([
       listTccs(user),
       listAtividades(user),
       listDocumentos(user),
       listSolicitacoes(user),
+      listInscricoes(user),
     ])
-    return { tccs, atividades, documentos, solicitacoes }
+    return { tccs, atividades, documentos, solicitacoes, inscricoes }
   }, [user.id])
 
   return (
@@ -32,16 +33,25 @@ export default function OrientadorDashboard() {
       <DataBoundary
         state={state}
         reload={reload}
-        isEmpty={(d) => d.tccs.length === 0 && d.solicitacoes.length === 0}
+        isEmpty={(d) => d.tccs.length === 0 && d.solicitacoes.length === 0 && d.inscricoes.length === 0}
         empty={{ title: 'Nenhum orientando vinculado', description: 'Quando a coordenação vincular alunos a você, eles aparecem aqui.' }}
       >
-        {({ tccs, atividades, documentos, solicitacoes }) => {
+        {({ tccs, atividades, documentos, solicitacoes, inscricoes }) => {
+          const inscNovas = inscricoes.filter((i) => !i.ciente)
           const novas = solicitacoes.filter((s) => s.status === 'pendente')
           const analise = documentos.filter((d) => d.status === 'em_analise')
           const comPendencia = tccs.filter((t) => t.status !== 'em_andamento')
           const proximos = atividades.filter((a) => a.status !== 'concluida').slice(0, 4)
           return (
             <div className="space-y-6">
+              {inscNovas.length > 0 && (
+                <div className="flex flex-wrap items-center justify-between gap-3 rounded-card bg-brand-50 p-4">
+                  <p className="text-sm">
+                    <span className="font-medium">{plural(inscNovas.length, 'aluno indicou', 'alunos indicaram')} você como orientador</span> no semestre {inscNovas[0].semestre}.
+                  </p>
+                  <ButtonLink to="/orientador/inscricoes" size="sm">Ver inscrições</ButtonLink>
+                </div>
+              )}
               <StatGroup>
                 <StatCard label="Solicitações pendentes" value={novas.length} tone={novas.length ? 'warning' : 'default'} hint="Pedidos de orientação" />
                 <StatCard label="Entregas para análise" value={analise.length} tone={analise.length ? 'warning' : 'default'} hint="Aguardam seu feedback" />

@@ -2,8 +2,8 @@ import { Link } from 'react-router-dom'
 import { EventoItem } from '../../components/EventoItem'
 import { ButtonLink, DataBoundary, Icon } from '../../design-system'
 import { useAsync } from '../../hooks/useAsync'
-import { daysUntil, plural } from '../../lib/format'
-import { getIndicadoresPublicos, listAreas, listEventosPublicos } from '../../services/api'
+import { daysUntil, formatDate, plural } from '../../lib/format'
+import { getIndicadoresPublicos, getPeriodoInscricao, listAreas, listEventosPublicos } from '../../services/api'
 import { useAuth } from '../../auth/useAuth'
 import { homePath } from '../../routes/navigation'
 
@@ -18,6 +18,8 @@ export default function HomePage() {
   const indicadores = useAsync(getIndicadoresPublicos)
   const eventos = useAsync(listEventosPublicos)
   const areas = useAsync(listAreas)
+  const periodo = useAsync(getPeriodoInscricao)
+  const aberto = periodo.state.status === 'success' && periodo.state.data?.situacao === 'aberto' ? periodo.state.data : null
   const ind = indicadores.state.status === 'success' ? indicadores.state.data : null
 
   return (
@@ -40,6 +42,14 @@ export default function HomePage() {
                 {user ? 'Ir para minha área' : 'Entrar'}
               </ButtonLink>
             </div>
+            {aberto && (
+              <p className="mt-6">
+                <Link to={user ? '/aluno/inscricao' : '/entrar'} state={user ? undefined : { from: '/aluno/inscricao' }} className="inline-flex min-h-11 items-center gap-2 rounded-full bg-white/10 px-4 text-sm font-medium hover:bg-white/20">
+                  Inscrições de TCC {aberto.semestre} abertas até {formatDate(aberto.fim)}
+                  <Icon name="arrow" size={16} />
+                </Link>
+              </p>
+            )}
             {ind && ind.totalTccs > 0 && (
               <p className="mt-8 text-sm text-white/80">
                 Semestre {ind.semestre}: {plural(ind.totalTccs, 'TCC em andamento', 'TCCs em andamento')} ·{' '}

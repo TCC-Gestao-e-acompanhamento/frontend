@@ -1,25 +1,28 @@
 import { ActivityList } from '../../components/ActivityList'
 import { DocumentList } from '../../components/DocumentList'
 import { FeedbackList } from '../../components/FeedbackList'
+import { InscricaoBanner } from '../../components/InscricaoBanner'
 import { SolicitacaoRow } from '../../components/SolicitacaoRow'
 import { StatusBadge } from '../../components/StatusBadge'
 import { useCurrentUser } from '../../auth/useAuth'
 import { ButtonLink, DataBoundary, PageHeader, ProgressBar, SectionCard } from '../../design-system'
 import { useAsync } from '../../hooks/useAsync'
 import { plural } from '../../lib/format'
-import { listAtividades, listDocumentos, listFeedbacks, listSolicitacoes, listTccs } from '../../services/api'
+import { getMinhaInscricao, getPeriodoInscricao, listAtividades, listDocumentos, listFeedbacks, listSolicitacoes, listTccs } from '../../services/api'
 
 export default function AlunoDashboard() {
   const user = useCurrentUser()
   const { state, reload } = useAsync(async () => {
-    const [tccs, atividades, documentos, feedbacks, solicitacoes] = await Promise.all([
+    const [tccs, atividades, documentos, feedbacks, solicitacoes, periodo, inscricao] = await Promise.all([
       listTccs(user),
       listAtividades(user),
       listDocumentos(user),
       listFeedbacks(user),
       listSolicitacoes(user),
+      getPeriodoInscricao(),
+      getMinhaInscricao(user),
     ])
-    return { tcc: tccs[0], atividades, documentos, feedbacks, solicitacoes }
+    return { tcc: tccs[0], atividades, documentos, feedbacks, solicitacoes, periodo, inscricao }
   }, [user.id])
 
   return (
@@ -29,10 +32,11 @@ export default function AlunoDashboard() {
         state={state}
         reload={reload}
       >
-        {({ tcc, atividades, documentos, feedbacks, solicitacoes }) => {
+        {({ tcc, atividades, documentos, feedbacks, solicitacoes, periodo, inscricao }) => {
           if (!tcc) {
             return (
               <div className="space-y-6">
+                <InscricaoBanner periodo={periodo} inscricao={inscricao} />
                 <SectionCard title="Você ainda não tem um TCC vinculado">
                   <p className="text-sm text-ink-muted">
                     O primeiro passo é encontrar um orientador. Busque por curso ou área de interesse e envie sua proposta.
@@ -57,6 +61,7 @@ export default function AlunoDashboard() {
           const pendentes = atividades.filter((a) => a.status !== 'concluida')
           return (
             <div className="space-y-6">
+              <InscricaoBanner periodo={periodo} inscricao={inscricao} />
               <SectionCard title="Situação do TCC" action={<StatusBadge kind="tcc" value={tcc.status} />}>
                 <p className="font-medium">{tcc.titulo}</p>
                 <p className="text-sm text-ink-muted">Orientador(a): {tcc.orientador.nome}</p>

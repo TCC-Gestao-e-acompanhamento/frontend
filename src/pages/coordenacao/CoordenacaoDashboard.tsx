@@ -4,14 +4,20 @@ import { DeadlineList } from '../../components/DeadlineList'
 import { useCurrentUser } from '../../auth/useAuth'
 import { ButtonLink, DataBoundary, PageHeader, ProgressBar, SectionCard, StatCard, StatGroup } from '../../design-system'
 import { useAsync } from '../../hooks/useAsync'
-import { plural } from '../../lib/format'
-import { listBancas, listPrazosInstitucionais, listTccs } from '../../services/api'
+import { formatDate, plural } from '../../lib/format'
+import { getPeriodoInscricao, listBancas, listInscricoes, listPrazosInstitucionais, listTccs } from '../../services/api'
 
 export default function CoordenacaoDashboard() {
   const user = useCurrentUser()
   const { state, reload } = useAsync(async () => {
-    const [tccs, bancas, prazos] = await Promise.all([listTccs(user), listBancas(user), listPrazosInstitucionais()])
-    return { tccs, bancas, prazos }
+    const [tccs, bancas, prazos, periodo, inscritos] = await Promise.all([
+      listTccs(user),
+      listBancas(user),
+      listPrazosInstitucionais(),
+      getPeriodoInscricao(),
+      listInscricoes(user),
+    ])
+    return { tccs, bancas, prazos, periodo, inscritos }
   }, [user.id])
 
   return (
@@ -23,7 +29,7 @@ export default function CoordenacaoDashboard() {
         isEmpty={(d) => d.tccs.length === 0}
         empty={{ title: 'Nenhum TCC cadastrado', description: 'Os trabalhos aparecem aqui após o cadastro no semestre.' }}
       >
-        {({ tccs, bancas, prazos }) => {
+        {({ tccs, bancas, prazos, periodo, inscritos }) => {
           const tcc1 = tccs.filter((t) => t.fase === 'TCC1').length
           const tcc2 = tccs.length - tcc1
           const pendentes = tccs.filter((t) => t.status !== 'em_andamento')
@@ -36,6 +42,17 @@ export default function CoordenacaoDashboard() {
           )
           return (
             <div className="space-y-6">
+              <div className="flex flex-wrap items-center justify-between gap-3 rounded-card border border-border p-4">
+                <div className="flex flex-wrap items-center gap-3">
+                  {periodo ? <StatusBadge kind="periodo" value={periodo.situacao} /> : null}
+                  <p className="text-sm">
+                    {periodo
+                      ? `Semestre ${periodo.semestre}: ${plural(inscritos.length, 'inscrito', 'inscritos')} · inscrições de ${formatDate(periodo.inicio)} a ${formatDate(periodo.fim)}`
+                      : 'Período de inscrições ainda não definido'}
+                  </p>
+                </div>
+                <ButtonLink to="/coordenacao/inscricoes" variant="secondary" size="sm">Gerenciar inscrições</ButtonLink>
+              </div>
               <StatGroup>
                 <StatCard label="TCCs cadastrados" value={tccs.length} />
                 <StatCard label="TCC 1 / TCC 2" value={`${tcc1} / ${tcc2}`} />
