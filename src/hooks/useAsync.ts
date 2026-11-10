@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 
 export type AsyncState<T> =
@@ -19,10 +19,15 @@ export function useAsync<T>(fn: () => Promise<T>, deps: unknown[] = []): AsyncRe
   const [state, setState] = useState<AsyncState<T>>({ status: 'loading' })
   const [tick, setTick] = useState(0)
   const { search } = useLocation()
+  const key = JSON.stringify([...deps, search])
+  const lastKey = useRef(key)
 
   useEffect(() => {
     let active = true
-    setState((s) => (s.status === 'success' ? s : { status: 'loading' }))
+    // Recarregar (mesma chave) mantém os dados na tela; mudar de contexto volta ao carregamento.
+    const mesmaChave = lastKey.current === key
+    lastKey.current = key
+    setState((s) => (mesmaChave && s.status === 'success' ? s : { status: 'loading' }))
     // Promise.resolve().then(fn) converte erros síncronos (ex.: 403 da API simulada) em rejeição.
     Promise.resolve()
       .then(fn)
@@ -36,10 +41,7 @@ export function useAsync<T>(fn: () => Promise<T>, deps: unknown[] = []): AsyncRe
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [...deps, search, tick])
 
-  const reload = useCallback(() => {
-    setState({ status: 'loading' })
-    setTick((t) => t + 1)
-  }, [])
+  const reload = useCallback(() => setTick((t) => t + 1), [])
 
   return { state, reload }
 }
