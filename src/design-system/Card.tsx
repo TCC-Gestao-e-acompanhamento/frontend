@@ -19,8 +19,8 @@ export function SectionCard({ title, description, action, children, className, i
   const headingId = `${id ?? title.replace(/\W+/g, '-').toLowerCase()}-title`
   return (
     <section aria-labelledby={headingId} className={cn('rounded-card border border-border bg-surface', className)}>
-      <header className="flex items-start justify-between gap-3 border-b border-border px-5 py-4">
-        <div>
+      <header className="flex flex-wrap items-start justify-between gap-x-3 gap-y-2 border-b border-border px-5 py-4">
+        <div className="min-w-0">
           <h2 id={headingId} className="text-base font-semibold">
             {title}
           </h2>
