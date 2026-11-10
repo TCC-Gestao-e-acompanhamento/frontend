@@ -50,3 +50,45 @@ export function Checkbox({ label, className, ...rest }: { label: ReactNode } & O
     </label>
   )
 }
+
+interface RadioOption<V extends string> {
+  value: V
+  label: string
+  hint?: string
+}
+
+interface RadioGroupProps<V extends string> {
+  legend: string
+  name: string
+  value: V | ''
+  onChange: (v: V) => void
+  options: RadioOption<V>[]
+  error?: string
+}
+
+/** Escolha única em cartões (alvos grandes, navegação por setas nativa). */
+export function RadioGroup<V extends string>({ legend, name, value, onChange, options, error }: RadioGroupProps<V>) {
+  return (
+    <fieldset aria-invalid={error ? true : undefined}>
+      <legend className="mb-1.5 text-sm font-medium">{legend}</legend>
+      <div className="grid gap-2 sm:grid-cols-2">
+        {options.map((o) => (
+          <label
+            key={o.value}
+            className={cn(
+              'flex min-h-14 cursor-pointer items-start gap-3 rounded-lg border p-3 text-sm',
+              value === o.value ? 'border-brand-700 bg-brand-50' : 'border-border hover:bg-surface-muted',
+            )}
+          >
+            <input type="radio" name={name} value={o.value} checked={value === o.value} onChange={() => onChange(o.value)} className="mt-0.5 size-5 accent-brand-700" />
+            <span>
+              <span className="block font-medium">{o.label}</span>
+              {o.hint && <span className="block text-xs text-ink-muted">{o.hint}</span>}
+            </span>
+          </label>
+        ))}
+      </div>
+      {error && <p role="alert" className="mt-1.5 text-xs text-danger">{error}</p>}
+    </fieldset>
+  )
+}
