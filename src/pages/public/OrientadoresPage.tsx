@@ -73,7 +73,7 @@ export default function OrientadoresPage() {
                 </Field>
                 <div className="flex flex-wrap items-center justify-between gap-3 sm:col-span-2 lg:col-span-3">
                   <Checkbox label="Mostrar apenas quem está recebendo solicitações" checked={soDisponiveis} onChange={(e) => setSoDisponiveis(e.target.checked)} />
-                  <p role="status" className="text-sm text-ink-muted">{lista.length} professor(es) encontrado(s)</p>
+                  <p role="status" className="text-sm text-ink-muted">{lista.length === 1 ? '1 professor encontrado' : `${lista.length} professores encontrados`}</p>
                 </div>
               </form>
 

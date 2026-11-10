@@ -43,3 +43,8 @@ export function initials(nome: string): string {
     .map((p) => p[0].toUpperCase())
     .join('')
 }
+
+/** "1 pendência" / "3 pendências". */
+export function plural(n: number, singular: string, pluralForm: string): string {
+  return `${n} ${n === 1 ? singular : pluralForm}`
+}

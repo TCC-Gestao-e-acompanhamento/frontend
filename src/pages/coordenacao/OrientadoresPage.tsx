@@ -4,6 +4,7 @@ import { useCurrentUser } from '../../auth/useAuth'
 import { DataBoundary, PageHeader, SectionCard } from '../../design-system'
 import { useAsync } from '../../hooks/useAsync'
 import { listTccs } from '../../services/api'
+import { plural } from '../../lib/format'
 import type { Tcc, User } from '../../types'
 
 export default function OrientadoresPage() {
@@ -11,7 +12,7 @@ export default function OrientadoresPage() {
   const { state, reload } = useAsync(() => listTccs(user), [user.id])
   return (
     <>
-      <PageHeader title="Orientadores e orientandos" description="Vínculos entre professores e alunos neste semestre. Alteração de vínculos depende de confirmação das atribuições institucionais." />
+      <PageHeader title="Vínculos entre orientadores e orientandos" description="Vínculos entre professores e alunos neste semestre. Alteração de vínculos depende de confirmação das atribuições institucionais." />
       <DataBoundary state={state} reload={reload} isEmpty={(d) => d.length === 0} empty={{ title: 'Nenhum vínculo cadastrado' }}>
         {(tccs) => {
           const grupos = tccs.reduce<Map<string, { orientador: User; tccs: Tcc[] }>>((m, t) => {
@@ -22,7 +23,7 @@ export default function OrientadoresPage() {
           return (
             <div className="grid gap-6 lg:grid-cols-2">
               {[...grupos.values()].map(({ orientador, tccs: lista }) => (
-                <SectionCard key={orientador.id} title={orientador.nome} description={`${lista.length} orientando(s) · ${orientador.email}`}>
+                <SectionCard key={orientador.id} title={orientador.nome} description={`${plural(lista.length, 'orientando', 'orientandos')} · ${orientador.email}`}>
                   <ul className="divide-y divide-border">
                     {lista.map((t) => (
                       <li key={t.id} className="flex items-center justify-between gap-3 py-2.5 first:pt-0 last:pb-0">

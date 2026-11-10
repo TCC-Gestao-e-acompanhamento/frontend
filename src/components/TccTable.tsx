@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { ProgressBar } from '../design-system'
+import { plural } from '../lib/format'
 import type { Tcc } from '../types'
 import { StatusBadge } from './StatusBadge'
 
@@ -45,7 +46,7 @@ export function TccTable({ items, basePath, showOrientador = false, caption }: P
               </td>
               <td className="py-3">
                 <StatusBadge kind="tcc" value={t.status} />
-                {t.pendencias > 0 && <p className="mt-1 text-xs text-ink-muted">{t.pendencias} pendência(s)</p>}
+                {t.pendencias > 0 && <p className="mt-1 text-xs text-ink-muted">{plural(t.pendencias, 'pendência', 'pendências')}</p>}
               </td>
             </tr>
           ))}
