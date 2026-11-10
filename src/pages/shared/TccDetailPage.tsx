@@ -79,7 +79,7 @@ export default function TccDetailPage() {
 
   return (
     <>
-      <Link to={voltar} className="mb-3 inline-block text-sm text-brand-700 hover:underline">← Voltar para a lista</Link>
+      <Link to={voltar} className="mb-1 inline-flex min-h-11 items-center text-sm text-brand-700 hover:underline">← Voltar para a lista</Link>
       <DataBoundary state={state} reload={reload}>
         {({ tcc, atividades, documentos, feedbacks }) => (
           <div className="space-y-6">

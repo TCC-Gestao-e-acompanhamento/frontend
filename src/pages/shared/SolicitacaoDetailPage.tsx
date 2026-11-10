@@ -51,7 +51,7 @@ function SolicitacaoDetail({ id }: { id: string }) {
 
   return (
     <>
-      <Link to={voltar} className="mb-3 inline-block text-sm text-brand-700 hover:underline">← Voltar para as solicitações</Link>
+      <Link to={voltar} className="mb-1 inline-flex min-h-11 items-center text-sm text-brand-700 hover:underline">← Voltar para as solicitações</Link>
       <DataBoundary state={state} reload={reload}>
         {(s) => (
           <div className="space-y-6">

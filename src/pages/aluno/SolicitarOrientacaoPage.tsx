@@ -51,7 +51,7 @@ export default function SolicitarOrientacaoPage() {
 
   return (
     <>
-      <Link to="/orientadores" className="mb-3 inline-block text-sm text-brand-700 hover:underline">← Voltar para a busca</Link>
+      <Link to="/orientadores" className="mb-1 inline-flex min-h-11 items-center text-sm text-brand-700 hover:underline">← Voltar para a busca</Link>
       <PageHeader title="Solicitar orientação" description="Apresente sua proposta de TCC. Leva poucos minutos." />
       <DataBoundary state={state} reload={reload}>
         {({ professor, curso, pendente }) =>

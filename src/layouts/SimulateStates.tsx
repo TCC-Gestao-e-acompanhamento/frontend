@@ -22,7 +22,7 @@ export function SimulateStates() {
             to={{ pathname, search: m.key ? `?mock=${m.key}` : '' }}
             aria-current={current === m.key ? 'true' : undefined}
             className={cn(
-              'rounded-md px-2 py-1 text-xs',
+              'inline-flex min-h-8 items-center rounded-md px-2.5 text-xs',
               current === m.key ? 'bg-brand-700 text-white' : 'bg-surface-muted text-ink-muted hover:text-ink',
             )}
           >

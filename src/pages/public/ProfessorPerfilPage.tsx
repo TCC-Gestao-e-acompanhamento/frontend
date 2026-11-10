@@ -10,7 +10,7 @@ export default function ProfessorPerfilPage() {
   const { state, reload } = useAsync(() => getProfessorPublico(id), [id])
   return (
     <>
-      <Link to="/orientadores" className="mb-3 inline-block text-sm text-brand-700 hover:underline">← Voltar para a busca</Link>
+      <Link to="/orientadores" className="mb-1 inline-flex min-h-11 items-center text-sm text-brand-700 hover:underline">← Voltar para a busca</Link>
       <DataBoundary state={state} reload={reload}>
         {(p) => (
           <div className="mx-auto max-w-3xl space-y-6">

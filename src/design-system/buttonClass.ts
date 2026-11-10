@@ -14,7 +14,7 @@ const variants: Record<Variant, string> = {
   inverse: 'bg-white text-brand-700 hover:bg-brand-50',
   'outline-inverse': 'border border-white/50 text-white hover:bg-white/10',
 }
-const sizes: Record<Size, string> = { md: 'min-h-11 px-4 text-sm', sm: 'min-h-9 px-3 text-sm' }
+const sizes: Record<Size, string> = { md: 'min-h-11 px-4 text-sm', sm: 'min-h-11 px-3 text-sm sm:min-h-9' }
 
 export const buttonClass = (variant: Variant = 'primary', size: Size = 'md') =>
   cn(base, variants[variant], sizes[size])

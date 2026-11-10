@@ -35,7 +35,7 @@ export default function SchedulePage() {
                 type="button"
                 aria-pressed={vista === v}
                 onClick={() => setVista(v)}
-                className={cn('min-h-9 rounded-md px-4 text-sm font-medium', vista === v ? 'bg-brand-700 text-white' : 'text-ink-muted hover:text-ink')}
+                className={cn('min-h-11 rounded-md px-4 sm:min-h-9 text-sm font-medium', vista === v ? 'bg-brand-700 text-white' : 'text-ink-muted hover:text-ink')}
               >
                 {v === 'lista' ? 'Lista' : 'Calendário'}
               </button>
