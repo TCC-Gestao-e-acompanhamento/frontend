@@ -33,8 +33,8 @@ export function ErrorState({ message, onRetry }: { message?: string; onRetry?: (
       <span className="grid size-10 place-items-center rounded-full bg-danger/10 text-danger">
         <Icon name="alert" />
       </span>
-      <p className="font-medium">Algo deu errado</p>
-      <p className="max-w-sm text-sm text-ink-muted">{message ?? 'Não foi possível carregar as informações.'}</p>
+      <p className="font-medium">Não foi possível carregar</p>
+      <p className="max-w-sm text-sm text-ink-muted">{message ?? 'Houve uma falha ao buscar as informações.'} {onRetry && 'Tente novamente em instantes.'}</p>
       {onRetry && (
         <Button variant="secondary" size="sm" onClick={onRetry}>
           Tentar novamente
