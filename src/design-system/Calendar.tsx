@@ -39,7 +39,11 @@ export function Calendar({ month, events, selected, onSelect, onMonthChange }: P
       <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-3">
         <h2 className="text-base font-semibold" aria-live="polite">{monthTitle(first)}</h2>
         <div className="flex items-center gap-1">
-          <button type="button" onClick={() => onMonthChange(startOfMonth(new Date()))} className="min-h-11 rounded-lg px-3 text-sm font-medium text-brand-700 hover:bg-brand-50">
+          <button type="button" onClick={() => {
+              const hojeIso = toIso(new Date())
+              onMonthChange(startOfMonth(new Date()))
+              onSelect(hojeIso)
+            }} className="min-h-11 rounded-lg px-3 text-sm font-medium text-brand-700 hover:bg-brand-50">
             Hoje
           </button>
           <button type="button" aria-label="Mês anterior" onClick={() => onMonthChange(addMonths(first, -1))} className="grid size-11 place-items-center rounded-lg hover:bg-surface-muted">
@@ -73,7 +77,11 @@ export function Calendar({ month, events, selected, onSelect, onMonthChange }: P
                   <td key={iso} className="border-t border-border p-0 align-top">
                     <button
                       type="button"
-                      onClick={() => onSelect(iso)}
+                      onClick={() => {
+                        onSelect(iso)
+                        // dia cinza de outro mês: leva o calendário junto
+                        if (!doMes) onMonthChange(startOfMonth(d))
+                      }}
                       aria-pressed={sel}
                       aria-label={`${d.toLocaleDateString('pt-BR', { day: 'numeric', month: 'long' })}${ehHoje ? ', hoje' : ''}${evs.length ? `, ${evs.length} ${evs.length === 1 ? 'evento' : 'eventos'}` : ''}`}
                       className={cn(

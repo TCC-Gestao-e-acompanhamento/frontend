@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useLocation, useParams } from 'react-router-dom'
 import { ResponderModal } from '../../components/ResponderModal'
 import { StatusBadge } from '../../components/StatusBadge'
@@ -24,8 +24,13 @@ function SolicitacaoDetail({ id }: { id: string }) {
   const [cancelando, setCancelando] = useState(false)
   const [confirmando, setConfirmando] = useState(false)
   const botaoCancelar = useRef<HTMLButtonElement>(null)
+  const avisoRef = useRef<HTMLParagraphElement>(null)
   const [aviso, setAviso] = useState<string>()
   const [erro, setErro] = useState<string>()
+  // Depois de cancelar/responder, o foco vai para o aviso (o botão anterior foi desmontado).
+  useEffect(() => {
+    if (aviso) avisoRef.current?.focus()
+  }, [aviso])
   const aluno = user.role === 'aluno'
   const voltar = aluno ? '/aluno/solicitacoes' : '/orientador/solicitacoes'
 
@@ -50,7 +55,7 @@ function SolicitacaoDetail({ id }: { id: string }) {
       <DataBoundary state={state} reload={reload}>
         {(s) => (
           <div className="space-y-6">
-            {aviso && <p role="status" className="rounded-lg border border-border bg-surface-muted p-3 text-sm">{aviso}</p>}
+            {aviso && <p ref={avisoRef} tabIndex={-1} role="status" className="rounded-lg border border-border bg-surface-muted p-3 text-sm">{aviso}</p>}
             {enviada && !aviso && (
               <p role="status" className="rounded-lg border border-success/30 bg-accent-50 p-3 text-sm text-success">
                 Solicitação enviada. {s.professorNome} será avisado(a) e você acompanha a resposta aqui.
