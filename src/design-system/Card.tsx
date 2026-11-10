@@ -45,7 +45,7 @@ const toneText = { default: 'text-ink', warning: 'text-warning', danger: 'text-d
 /** Indicadores lado a lado, separados por filetes finos dentro de uma única moldura. */
 export function StatGroup({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <div className={cn('grid gap-px overflow-hidden rounded-card border border-border bg-border sm:grid-cols-2 sm:[&>:last-child:nth-child(odd)]:col-span-2 lg:grid-flow-col lg:grid-cols-none lg:auto-cols-fr lg:[&>:last-child:nth-child(odd)]:col-span-1', className)}>
+    <div className={cn('grid gap-px overflow-hidden rounded-card border border-border bg-border grid-cols-2 [&>:last-child:nth-child(odd)]:col-span-2 lg:grid-flow-col lg:grid-cols-none lg:auto-cols-fr lg:[&>:last-child:nth-child(odd)]:col-span-1', className)}>
       {children}
     </div>
   )
@@ -53,7 +53,7 @@ export function StatGroup({ children, className }: { children: ReactNode; classN
 
 export function StatCard({ label, value, hint, tone = 'default' }: StatCardProps) {
   return (
-    <div className="bg-surface p-5">
+    <div className="bg-surface p-4 sm:p-5">
       <p className="text-sm text-ink-muted">{label}</p>
       <p className={cn('mt-1 text-2xl font-semibold tabular-nums', toneText[tone])}>{value}</p>
       {hint && <p className="mt-1 text-xs text-ink-muted">{hint}</p>}
