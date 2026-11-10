@@ -1,6 +1,6 @@
 /** CSV para planilhas em pt-BR (separador ";" e BOM para o Excel reconhecer acentos). */
 function celula(v: string): string {
-  let limpo = v.replace(/\r?\n/g, ' ')
+  let limpo = v.replace(/[\r\n]+/g, ' ')
   // Planilhas executam células que começam com = + - @ (injeção de fórmula): neutraliza com apóstrofo.
   if (/^[=+\-@\t]/.test(limpo)) limpo = `'${limpo}`
   return /[;"]/.test(limpo) ? `"${limpo.replace(/"/g, '""')}"` : limpo

@@ -42,9 +42,13 @@ export default function HomePage() {
                 {user ? 'Ir para minha área' : 'Entrar'}
               </ButtonLink>
             </div>
-            {aberto && (
+            {aberto && (!user || user.role !== 'orientador') && (
               <p className="mt-6">
-                <Link to={user ? '/aluno/inscricao' : '/entrar'} state={user ? undefined : { from: '/aluno/inscricao' }} className="inline-flex min-h-11 items-center gap-2 rounded-full bg-white/10 px-4 text-sm font-medium hover:bg-white/20">
+                <Link
+                  to={!user ? '/entrar' : user.role === 'aluno' ? '/aluno/inscricao' : '/coordenacao/inscricoes'}
+                  state={!user ? { from: '/aluno/inscricao' } : undefined}
+                  className="inline-flex min-h-11 items-center gap-2 rounded-full bg-white/10 px-4 text-sm font-medium hover:bg-white/20"
+                >
                   Inscrições de TCC {aberto.semestre} abertas até {formatDate(aberto.fim)}
                   <Icon name="arrow" size={16} />
                 </Link>
