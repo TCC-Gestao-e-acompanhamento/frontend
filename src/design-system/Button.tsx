@@ -1,4 +1,4 @@
-import type { ButtonHTMLAttributes } from 'react'
+import type { ButtonHTMLAttributes, Ref } from 'react'
 import { Link, type LinkProps } from 'react-router-dom'
 import { cn } from '../lib/format'
 import { buttonClass, type Size, type Variant } from './buttonClass'
@@ -7,6 +7,8 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: Variant
   size?: Size
   loading?: boolean
+  /** React 19: ref como prop comum. */
+  ref?: Ref<HTMLButtonElement>
 }
 
 export function Button({ variant, size, loading, className, children, disabled, ...rest }: ButtonProps) {
