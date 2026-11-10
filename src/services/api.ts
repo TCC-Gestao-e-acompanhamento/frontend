@@ -27,6 +27,7 @@ import type {
   Atividade,
   Banca,
   Curso,
+  EventoCalendario,
   Documento,
   Etapa,
   Feedback,
@@ -148,6 +149,29 @@ export function getIndicadoresPublicos(): Promise<IndicadoresPublicos> {
   return settle(data, { ...data, totalTccs: 0, tcc1: 0, tcc2: 0, defesasAgendadas: 0, defesasRealizadas: 0 })
 }
 
+/** Prazos institucionais e defesas públicas num só calendário (somente dados públicos). */
+export function listEventosPublicos(): Promise<EventoCalendario[]> {
+  const prazos: EventoCalendario[] = prazosInstitucionais.map((p) => ({
+    id: p.id,
+    data: p.data,
+    titulo: p.titulo,
+    tipo: 'prazo',
+    fase: p.fase,
+  }))
+  const defesas: EventoCalendario[] = bancas
+    .filter((b) => b.situacao !== 'a_definir' && b.data)
+    .map(toBanca)
+    .map((b) => ({
+      id: `def-${b.id}`,
+      data: b.data as string,
+      titulo: `Defesa de ${b.alunoNome}`,
+      tipo: 'defesa',
+      detalhe: b.local,
+    }))
+  const data = [...prazos, ...defesas].sort((a, b) => a.data.localeCompare(b.data))
+  return settle(data, [])
+}
+
 function toBanca(b: (typeof bancas)[number]): Banca {
   const rec = b.tccId ? tccs.find((t) => t.id === b.tccId) : undefined
   return {
@@ -261,6 +285,17 @@ export async function addFeedback(user: User, input: NovoFeedback): Promise<void
     resolvido: input.tipo === 'comentario',
   })
   await new Promise((r) => setTimeout(r, 400))
+}
+
+/** Aluno marca como resolvida uma correção pedida pelo orientador. */
+export async function resolverFeedback(user: User, id: string): Promise<void> {
+  const fb = feedbacks.find((f) => f.id === id)
+  if (!fb) throw new ApiError('Feedback não encontrado', 404)
+  if (user.role !== 'aluno') throw new ApiError('Somente o aluno marca a correção como resolvida', 403)
+  assertAccess(user, fb.tccId)
+  if (fb.tipo !== 'correcao') throw new ApiError('Apenas correções podem ser marcadas como resolvidas.', 409)
+  fb.resolvido = true
+  await wait(300)
 }
 
 export function listBancas(user: User): Promise<Banca[]> {

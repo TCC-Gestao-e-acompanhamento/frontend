@@ -180,3 +180,12 @@ export interface NovaSolicitacao {
   descricao: string
   mensagem?: string
 }
+
+export interface EventoCalendario {
+  id: string
+  data: string
+  titulo: string
+  tipo: 'prazo' | 'defesa'
+  fase?: Fase
+  detalhe?: string
+}
