@@ -185,7 +185,54 @@ export interface EventoCalendario {
   id: string
   data: string
   titulo: string
-  tipo: 'prazo' | 'defesa'
+  tipo: 'prazo' | 'defesa' | 'inscricao'
   fase?: Fase
   detalhe?: string
+}
+
+/* ---------- Inscrição no TCC ---------- */
+
+export type PeriodoSituacao = 'antes' | 'aberto' | 'encerrado'
+
+export interface PeriodoInscricao {
+  semestre: string
+  inicio: string
+  fim: string
+  situacao: PeriodoSituacao
+}
+
+export interface PeriodoInput {
+  semestre: string
+  inicio: string
+  fim: string
+}
+
+/** sistema: o orientador está cadastrado e vê o aviso na própria área. email: aviso por e-mail (simulado). */
+export type AvisoOrientador = 'sistema' | 'email'
+
+export interface Inscricao {
+  id: string
+  semestre: string
+  alunoId: string
+  alunoNome: string
+  matricula: string
+  curso: string
+  fase: Fase
+  orientadorId?: string
+  orientadorNome: string
+  /** Só visível para a coordenação e para o próprio aluno. */
+  orientadorEmail?: string
+  avisoOrientador: AvisoOrientador
+  ciente: boolean
+  cienteEm?: string
+  criadaEm: string
+  atualizadaEm?: string
+}
+
+export interface NovaInscricao {
+  fase: Fase
+  /** Professor cadastrado na plataforma. Sem isso, informe nome e e-mail. */
+  orientadorId?: string
+  orientadorNome?: string
+  orientadorEmail?: string
 }

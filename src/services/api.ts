@@ -13,21 +13,29 @@ import {
   cursos,
   documentos,
   feedbacks,
+  inscricoes,
   perfisProfessores,
+  periodoInscricao,
   prazosInstitucionais,
   solicitacoes,
   tccs,
   users,
+  type InscricaoRecord,
   type PerfilProfessorRecord,
   type SolicitacaoRecord,
 } from '../mocks/data'
 import { daysUntil } from '../lib/format'
+import { emailUnbValido } from '../lib/validators'
 import type {
   AreaOrientacao,
   Atividade,
   Banca,
   Curso,
   EventoCalendario,
+  Inscricao,
+  NovaInscricao,
+  PeriodoInput,
+  PeriodoInscricao,
   Documento,
   Etapa,
   Feedback,
@@ -168,7 +176,11 @@ export function listEventosPublicos(): Promise<EventoCalendario[]> {
       tipo: 'defesa',
       detalhe: b.local,
     }))
-  const data = [...prazos, ...defesas].sort((a, b) => a.data.localeCompare(b.data))
+  const inscr: EventoCalendario[] = [
+    { id: 'insc-ini', data: periodoInscricao.inicio, titulo: `Abertura das inscrições de TCC ${periodoInscricao.semestre}`, tipo: 'inscricao' },
+    { id: 'insc-fim', data: periodoInscricao.fim, titulo: `Encerramento das inscrições de TCC ${periodoInscricao.semestre}`, tipo: 'inscricao' },
+  ]
+  const data = [...prazos, ...defesas, ...inscr].sort((a, b) => a.data.localeCompare(b.data))
   return settle(data, [])
 }
 
@@ -467,4 +479,149 @@ export async function responderSolicitacao(
   rec.resposta = input.texto?.trim() || undefined
   rec.respondidaEm = addDays(0)
   await wait(300)
+}
+
+/* ------------------------- Inscrição no TCC ------------------------- */
+
+function viewPeriodo(): PeriodoInscricao {
+  const p = periodoInscricao
+  const situacao = daysUntil(p.inicio) > 0 ? 'antes' : daysUntil(p.fim) < 0 ? 'encerrado' : 'aberto'
+  return { ...p, situacao }
+}
+
+/** Público: o período é informação aberta (aparece no calendário e na página inicial). */
+export function getPeriodoInscricao(): Promise<PeriodoInscricao | null> {
+  return settle<PeriodoInscricao | null>(viewPeriodo(), null)
+}
+
+export async function savePeriodoInscricao(user: User, input: PeriodoInput): Promise<PeriodoInscricao> {
+  if (user.role !== 'coordenacao') throw new ApiError('Somente a coordenação define o período de inscrições', 403)
+  if (!/^\d{4}\/[12]$/.test(input.semestre.trim())) throw new ApiError('Informe o semestre no formato 2027/1.', 422)
+  if (!input.inicio || !input.fim) throw new ApiError('Informe as datas de início e de fim.', 422)
+  if (input.fim < input.inicio) throw new ApiError('A data de fim não pode ser anterior à de início.', 422)
+  periodoInscricao.semestre = input.semestre.trim()
+  periodoInscricao.inicio = input.inicio
+  periodoInscricao.fim = input.fim
+  await wait()
+  return viewPeriodo()
+}
+
+function toInscricao(r: InscricaoRecord, comEmail: boolean): Inscricao {
+  const aluno = userById(r.alunoId)
+  return {
+    id: r.id,
+    semestre: r.semestre,
+    alunoId: r.alunoId,
+    alunoNome: aluno.nome,
+    matricula: aluno.matricula ?? '',
+    curso: cursos.find((c) => c.id === aluno.cursoId)?.nome ?? 'Curso não informado',
+    fase: r.fase,
+    orientadorId: r.orientadorId,
+    orientadorNome: r.orientadorNome,
+    orientadorEmail: comEmail ? r.orientadorEmail : undefined,
+    avisoOrientador: r.orientadorId ? 'sistema' : 'email',
+    ciente: !!r.cienteEm,
+    cienteEm: r.cienteEm,
+    criadaEm: r.criadaEm,
+    atualizadaEm: r.atualizadaEm,
+  }
+}
+
+const ativasDoSemestre = () => inscricoes.filter((i) => i.status === 'ativa' && i.semestre === periodoInscricao.semestre)
+
+/** Resolve o orientador informado: professor da plataforma (id) ou nome + e-mail digitados. */
+function resolverOrientador(input: NovaInscricao): Pick<InscricaoRecord, 'orientadorId' | 'orientadorNome' | 'orientadorEmail'> {
+  if (input.fase !== 'TCC1' && input.fase !== 'TCC2') throw new ApiError('Escolha TCC 1 ou TCC 2.', 422)
+  if (input.orientadorId) {
+    const prof = users.find((u) => u.id === input.orientadorId && u.role === 'orientador')
+    if (!prof) throw new ApiError('Professor não encontrado', 404)
+    return { orientadorId: prof.id, orientadorNome: prof.nome, orientadorEmail: prof.email }
+  }
+  const nome = (input.orientadorNome ?? '').trim()
+  const email = (input.orientadorEmail ?? '').trim().toLowerCase()
+  if (nome.length < 3) throw new ApiError('Informe o nome do orientador.', 422)
+  if (!emailUnbValido(email)) throw new ApiError('Informe o e-mail institucional do orientador (terminado em unb.br).', 422)
+  // Mesmo e-mail de um professor cadastrado: avisa dentro do sistema.
+  const conhecido = users.find((u) => u.role === 'orientador' && u.email.toLowerCase() === email)
+  return { orientadorId: conhecido?.id, orientadorNome: conhecido?.nome ?? nome, orientadorEmail: email }
+}
+
+function exigirPeriodoAberto(): void {
+  const { situacao, inicio, fim } = viewPeriodo()
+  if (situacao === 'antes') throw new ApiError(`As inscrições ainda não abriram (início em ${inicio.split('-').reverse().join('/')}).`, 409)
+  if (situacao === 'encerrado') throw new ApiError(`As inscrições foram encerradas em ${fim.split('-').reverse().join('/')}.`, 409)
+}
+
+export function getMinhaInscricao(user: User): Promise<Inscricao | null> {
+  if (user.role !== 'aluno') return Promise.reject(new ApiError('Apenas alunos se inscrevem', 403))
+  const rec = ativasDoSemestre().find((i) => i.alunoId === user.id)
+  return settle<Inscricao | null>(rec ? toInscricao(rec, true) : null, null)
+}
+
+export async function createInscricao(user: User, input: NovaInscricao): Promise<Inscricao> {
+  if (user.role !== 'aluno') throw new ApiError('Apenas alunos autenticados se inscrevem', 403)
+  exigirPeriodoAberto()
+  if (ativasDoSemestre().some((i) => i.alunoId === user.id)) throw new ApiError('Você já está inscrito neste semestre. Edite a inscrição existente.', 409)
+  const rec: InscricaoRecord = {
+    id: `i${Date.now()}`,
+    semestre: periodoInscricao.semestre,
+    alunoId: user.id,
+    fase: input.fase,
+    ...resolverOrientador(input),
+    status: 'ativa',
+    criadaEm: addDays(0),
+  }
+  inscricoes.push(rec)
+  await wait()
+  return toInscricao(rec, true)
+}
+
+function minhaInscricaoEditavel(user: User, id: string): InscricaoRecord {
+  const rec = inscricoes.find((i) => i.id === id)
+  if (!rec) throw new ApiError('Inscrição não encontrada', 404)
+  if (user.role !== 'aluno' || rec.alunoId !== user.id) throw new ApiError('Você não tem permissão para alterar esta inscrição', 403)
+  if (rec.status !== 'ativa') throw new ApiError('Esta inscrição foi cancelada.', 409)
+  exigirPeriodoAberto()
+  return rec
+}
+
+export async function updateInscricao(user: User, id: string, input: NovaInscricao): Promise<Inscricao> {
+  const rec = minhaInscricaoEditavel(user, id)
+  const novo = resolverOrientador(input)
+  // Trocar de orientador refaz o aviso: a ciência anterior deixa de valer.
+  if (novo.orientadorEmail !== rec.orientadorEmail) rec.cienteEm = undefined
+  Object.assign(rec, novo, { fase: input.fase, atualizadaEm: addDays(0) })
+  await wait()
+  return toInscricao(rec, true)
+}
+
+export async function cancelInscricao(user: User, id: string): Promise<void> {
+  const rec = minhaInscricaoEditavel(user, id)
+  rec.status = 'cancelada'
+  await wait(300)
+}
+
+/** Coordenação: todas as inscrições do semestre. Orientador: as que o indicam (sem o e-mail informado por outros). */
+export function listInscricoes(user: User): Promise<Inscricao[]> {
+  if (user.role === 'aluno') return Promise.reject(new ApiError('Perfil sem acesso à lista de inscrições', 403))
+  const base = ativasDoSemestre().filter((i) => user.role === 'coordenacao' || i.orientadorId === user.id)
+  const data = base
+    .map((i) => toInscricao(i, user.role === 'coordenacao'))
+    .sort((a, b) => b.criadaEm.localeCompare(a.criadaEm) || a.alunoNome.localeCompare(b.alunoNome, 'pt-BR'))
+  return settle(data, [])
+}
+
+export async function marcarCiente(user: User, id: string): Promise<void> {
+  const rec = inscricoes.find((i) => i.id === id)
+  if (!rec) throw new ApiError('Inscrição não encontrada', 404)
+  if (user.role !== 'orientador' || rec.orientadorId !== user.id) throw new ApiError('Você não tem permissão para confirmar ciência desta inscrição', 403)
+  if (rec.status !== 'ativa') throw new ApiError('Esta inscrição foi cancelada.', 409)
+  rec.cienteEm = addDays(0)
+  await wait(250)
+}
+
+/** Para o contador no menu do orientador. Não simula carregamento nem erro. */
+export function contarInscricoesNovas(user: User): Promise<number> {
+  if (user.role !== 'orientador') return Promise.resolve(0)
+  return Promise.resolve(ativasDoSemestre().filter((i) => i.orientadorId === user.id && !i.cienteEm).length)
 }

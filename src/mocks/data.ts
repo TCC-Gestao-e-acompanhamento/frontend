@@ -246,3 +246,30 @@ export const solicitacoes: SolicitacaoRecord[] = [
   { id: 's4', professorId: 'o1', alunoId: 'a9', titulo: 'Testes automatizados em aplicações web', area: 'Engenharia de Software', descricao: 'Comparar estratégias de teste end-to-end e seu custo de manutenção em projetos pequenos.', status: 'pendente', enviadaEm: addDays(-4) },
   { id: 's5', professorId: 'o1', alunoId: 'a2', titulo: 'Detecção de fraudes em transações com aprendizado de máquina', area: 'Inteligência Artificial', descricao: 'Aplicar modelos de aprendizado supervisionado à detecção de fraudes em transações financeiras.', status: 'aceita', enviadaEm: addDays(-60), respondidaEm: addDays(-57), resposta: 'Aceito. Vamos alinhar o escopo na primeira reunião.' },
 ]
+
+/* ---------- Inscrição no TCC (dados fictícios) ---------- */
+
+/** Período definido pela coordenação para o semestre seguinte. Editável. */
+export const periodoInscricao = { semestre: '2027/1', inicio: addDays(-3), fim: addDays(7) }
+
+export interface InscricaoRecord {
+  id: string
+  semestre: string
+  alunoId: string
+  fase: 'TCC1' | 'TCC2'
+  orientadorId?: string
+  orientadorNome: string
+  orientadorEmail: string
+  status: 'ativa' | 'cancelada'
+  criadaEm: string
+  atualizadaEm?: string
+  cienteEm?: string
+}
+
+export const inscricoes: InscricaoRecord[] = [
+  { id: 'i1', semestre: '2027/1', alunoId: 'a2', fase: 'TCC2', orientadorId: 'o1', orientadorNome: 'Prof. Dr. Carlos Andrade', orientadorEmail: 'carlos.andrade@unb.br', status: 'ativa', criadaEm: addDays(-2), cienteEm: addDays(-1) },
+  { id: 'i2', semestre: '2027/1', alunoId: 'a3', fase: 'TCC1', orientadorId: 'o1', orientadorNome: 'Prof. Dr. Carlos Andrade', orientadorEmail: 'carlos.andrade@unb.br', status: 'ativa', criadaEm: addDays(-2) },
+  { id: 'i3', semestre: '2027/1', alunoId: 'a9', fase: 'TCC1', orientadorId: 'o1', orientadorNome: 'Prof. Dr. Carlos Andrade', orientadorEmail: 'carlos.andrade@unb.br', status: 'ativa', criadaEm: addDays(-1) },
+  { id: 'i4', semestre: '2027/1', alunoId: 'a5', fase: 'TCC2', orientadorId: 'o2', orientadorNome: 'Profa. Dra. Helena Prado', orientadorEmail: 'helena.prado@unb.br', status: 'ativa', criadaEm: addDays(-3) },
+  { id: 'i5', semestre: '2027/1', alunoId: 'a7', fase: 'TCC1', orientadorNome: 'Prof. Dr. Henrique Lacerda', orientadorEmail: 'henrique.lacerda@unb.br', status: 'ativa', criadaEm: addDays(-1) },
+]
