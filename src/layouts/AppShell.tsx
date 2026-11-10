@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react'
-import { NavLink, useLocation, useNavigate } from 'react-router-dom'
+import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useCurrentUser, useAuth } from '../auth/useAuth'
 import { Badge, Button, Icon } from '../design-system'
 import { cn, initials } from '../lib/format'
@@ -32,7 +32,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           className={({ isActive }) =>
             cn(
               'flex min-h-11 items-center gap-3 rounded-lg px-3 text-sm font-medium',
-              isActive ? 'bg-brand-50 text-brand-700' : 'text-ink-muted hover:bg-surface-muted hover:text-ink',
+              isActive ? 'bg-surface text-brand-700 shadow-sm ring-1 ring-border' : 'text-ink-muted hover:bg-surface hover:text-ink',
             )
           }
         >
@@ -82,13 +82,19 @@ export function AppShell({ children }: { children: ReactNode }) {
         <aside
           id="menu-lateral"
           className={cn(
-            'fixed inset-x-0 top-16 bottom-0 z-20 flex-col justify-between overflow-y-auto border-r border-border bg-surface p-4 lg:sticky lg:top-16 lg:h-[calc(100vh-4rem)] lg:translate-x-0',
+            'fixed inset-x-0 top-16 bottom-0 z-20 flex-col justify-between gap-6 overflow-y-auto border-r border-border bg-surface-muted p-4 lg:sticky lg:top-16 lg:h-[calc(100vh-4rem)] lg:translate-x-0',
             open ? 'flex' : 'hidden lg:flex',
             'sm:right-auto sm:w-72 lg:w-auto',
           )}
         >
           {nav}
-          <SimulateStates />
+          <div className="space-y-3">
+            <Link to="/" className="flex min-h-11 items-center gap-3 rounded-lg px-3 text-sm text-ink-muted hover:bg-surface hover:text-ink">
+              <Icon name="arrow" />
+              Ir para o site público
+            </Link>
+            <SimulateStates />
+          </div>
         </aside>
 
         <main id="conteudo" tabIndex={-1} className="mx-auto w-full max-w-6xl px-4 py-6 lg:px-8 lg:py-8">

@@ -20,7 +20,8 @@ export const homePath = (role: Role): string => `/${role}`
 export const NAV: Record<Role, NavItem[]> = {
   aluno: [
     { to: '/aluno', label: 'Início', icon: 'home', end: true },
-    { to: '/aluno/solicitacoes', label: 'Solicitações de orientação', icon: 'send' },
+    { to: '/aluno/solicitacoes', label: 'Solicitações', icon: 'send' },
+    { to: '/orientadores', label: 'Buscar orientador', icon: 'search' },
     { to: '/aluno/etapas', label: 'Etapas do TCC', icon: 'steps' },
     { to: '/aluno/cronograma', label: 'Cronograma', icon: 'calendar' },
     { to: '/aluno/documentos', label: 'Documentos', icon: 'file' },
@@ -39,7 +40,7 @@ export const NAV: Record<Role, NavItem[]> = {
   coordenacao: [
     { to: '/coordenacao', label: 'Início', icon: 'home', end: true },
     { to: '/coordenacao/tccs', label: 'TCCs', icon: 'list' },
-    { to: '/coordenacao/orientadores', label: 'Orientadores', icon: 'users' },
+    { to: '/coordenacao/orientadores', label: 'Vínculos', icon: 'users' },
     { to: '/coordenacao/prazos', label: 'Etapas e prazos', icon: 'calendar' },
     { to: '/coordenacao/bancas', label: 'Bancas', icon: 'flag' },
   ],
