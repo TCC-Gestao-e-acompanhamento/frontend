@@ -576,17 +576,17 @@ export async function createInscricao(user: User, input: NovaInscricao): Promise
   return toInscricao(rec, true)
 }
 
-function minhaInscricaoEditavel(user: User, id: string): InscricaoRecord {
+/** Só a coordenação altera ou cancela inscrições (o aluno apenas envia). */
+function inscricaoGerenciavel(user: User, id: string): InscricaoRecord {
   const rec = inscricoes.find((i) => i.id === id)
   if (!rec) throw new ApiError('Inscrição não encontrada', 404)
-  if (user.role !== 'aluno' || rec.alunoId !== user.id) throw new ApiError('Você não tem permissão para alterar esta inscrição', 403)
-  if (rec.status !== 'ativa') throw new ApiError('Esta inscrição foi cancelada.', 409)
-  exigirPeriodoAberto()
+  if (user.role !== 'coordenacao') throw new ApiError('Somente a coordenação altera ou cancela inscrições. Procure a coordenação.', 403)
+  if (rec.status !== 'ativa') throw new ApiError('Esta inscrição já foi cancelada.', 409)
   return rec
 }
 
 export async function updateInscricao(user: User, id: string, input: NovaInscricao): Promise<Inscricao> {
-  const rec = minhaInscricaoEditavel(user, id)
+  const rec = inscricaoGerenciavel(user, id)
   const novo = resolverOrientador(input)
   // Trocar de orientador refaz o aviso: a ciência anterior deixa de valer.
   if (novo.orientadorEmail !== rec.orientadorEmail) rec.cienteEm = undefined
@@ -596,7 +596,7 @@ export async function updateInscricao(user: User, id: string, input: NovaInscric
 }
 
 export async function cancelInscricao(user: User, id: string): Promise<void> {
-  const rec = minhaInscricaoEditavel(user, id)
+  const rec = inscricaoGerenciavel(user, id)
   rec.status = 'cancelada'
   await wait(300)
 }

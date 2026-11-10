@@ -1,141 +1,14 @@
-import { useRef, useState, type FormEvent } from 'react'
+import { useState } from 'react'
 import { useCurrentUser } from '../../auth/useAuth'
+import { InscricaoForm } from '../../components/InscricaoForm'
 import { StatusBadge } from '../../components/StatusBadge'
-import { Badge, Button, ButtonLink, DataBoundary, EmptyState, Field, Input, PageHeader, RadioGroup, SectionCard, Select } from '../../design-system'
+import { Badge, ButtonLink, DataBoundary, EmptyState, PageHeader, SectionCard } from '../../design-system'
 import { useAsync } from '../../hooks/useAsync'
 import { daysUntil, formatDate, formatDateLong, plural } from '../../lib/format'
-import { emailUnbValido } from '../../lib/validators'
-import {
-  cancelInscricao,
-  createInscricao,
-  getMinhaInscricao,
-  getPeriodoInscricao,
-  listProfessoresPublicos,
-  listSolicitacoes,
-  updateInscricao,
-} from '../../services/api'
-import type { Fase, Inscricao, PeriodoInscricao, ProfessorPublico } from '../../types'
+import { createInscricao, getMinhaInscricao, getPeriodoInscricao, listProfessoresPublicos, listSolicitacoes } from '../../services/api'
+import type { Inscricao, PeriodoInscricao } from '../../types'
 
-const OUTRO = 'outro'
-
-interface FormProps {
-  professores: ProfessorPublico[]
-  inicial?: Inscricao
-  sugestaoProfessorId?: string
-  onSaved: (i: Inscricao) => void
-  onCancel?: () => void
-}
-
-type Erros = Partial<Record<'fase' | 'orientador' | 'nome' | 'email', string>>
-
-function InscricaoForm({ professores, inicial, sugestaoProfessorId, onSaved, onCancel }: FormProps) {
-  const user = useCurrentUser()
-  const noSistema = inicial?.orientadorId && professores.some((p) => p.id === inicial.orientadorId)
-  const [fase, setFase] = useState<Fase | ''>(inicial?.fase ?? '')
-  const [professor, setProfessor] = useState<string>(
-    inicial ? (noSistema ? (inicial.orientadorId as string) : OUTRO) : (sugestaoProfessorId ?? ''),
-  )
-  const [nome, setNome] = useState(inicial && !noSistema ? inicial.orientadorNome : '')
-  const [email, setEmail] = useState(inicial && !noSistema ? (inicial.orientadorEmail ?? '') : '')
-  const [erros, setErros] = useState<Erros>({})
-  const [erroEnvio, setErroEnvio] = useState<string>()
-  const [enviando, setEnviando] = useState(false)
-
-  const submit = async (e: FormEvent) => {
-    e.preventDefault()
-    const outro = professor === OUTRO
-    const novos: Erros = {
-      fase: fase ? undefined : 'Escolha TCC 1 ou TCC 2.',
-      orientador: professor ? undefined : 'Escolha o orientador ou informe os dados dele.',
-      nome: outro && nome.trim().length < 3 ? 'Informe o nome do orientador.' : undefined,
-      email: outro && !emailUnbValido(email) ? 'Use o e-mail institucional do orientador (termina em unb.br).' : undefined,
-    }
-    setErros(novos)
-    if (Object.values(novos).some(Boolean)) return
-    setEnviando(true)
-    setErroEnvio(undefined)
-    try {
-      const dados = { fase: fase as Fase, ...(outro ? { orientadorNome: nome, orientadorEmail: email } : { orientadorId: professor }) }
-      const salvo = inicial ? await updateInscricao(user, inicial.id, dados) : await createInscricao(user, dados)
-      onSaved(salvo)
-    } catch (err) {
-      setErroEnvio(err instanceof Error ? err.message : 'Não foi possível enviar a inscrição.')
-      setEnviando(false)
-    }
-  }
-
-  const sugerido = !inicial && sugestaoProfessorId && professor === sugestaoProfessorId
-
-  return (
-    <form onSubmit={submit} noValidate className="space-y-5">
-      <SectionCard title={inicial ? 'Editar inscrição' : 'Seus dados de inscrição'} description="Preencha apenas o que a coordenação precisa.">
-        <div className="grid gap-4">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Nome" hint="Da sua conta.">{(p) => <Input {...p} value={user.nome} readOnly className="bg-surface-muted" />}</Field>
-            <Field label="Matrícula" hint="Da sua conta.">{(p) => <Input {...p} value={user.matricula ?? ''} readOnly className="bg-surface-muted" />}</Field>
-          </div>
-
-          <RadioGroup<Fase>
-            legend="Em qual TCC você está se inscrevendo?"
-            name="fase"
-            value={fase}
-            onChange={(v) => setFase(v)}
-            error={erros.fase}
-            options={[
-              { value: 'TCC1', label: 'TCC 1', hint: 'Projeto e revisão bibliográfica' },
-              { value: 'TCC2', label: 'TCC 2', hint: 'Desenvolvimento, monografia e defesa' },
-            ]}
-          />
-
-          <Field label="Orientador" error={erros.orientador} hint={sugerido ? 'Sugerido: este professor aceitou sua solicitação de orientação.' : 'Escolha na lista. Se ele não aparecer, selecione a última opção.'}>
-            {(p) => (
-              <Select {...p} value={professor} onChange={(e) => setProfessor(e.target.value)}>
-                <option value="">Selecione…</option>
-                {professores.map((pr) => <option key={pr.id} value={pr.id}>{pr.nome}</option>)}
-                <option value={OUTRO}>Meu orientador não está na lista</option>
-              </Select>
-            )}
-          </Field>
-
-          {professor === OUTRO && (
-            <div className="grid gap-4 rounded-lg bg-surface-muted p-4 sm:grid-cols-2">
-              <Field label="Nome do orientador" error={erros.nome}>{(p) => <Input {...p} value={nome} onChange={(e) => setNome(e.target.value)} autoComplete="off" />}</Field>
-              <Field label="E-mail da UnB do orientador" error={erros.email} hint="Ele será avisado neste endereço.">
-                {(p) => <Input {...p} type="email" inputMode="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="nome@unb.br" autoComplete="off" />}
-              </Field>
-            </div>
-          )}
-        </div>
-      </SectionCard>
-
-      {erroEnvio && <p role="alert" className="rounded-lg border border-danger/30 bg-danger/10 p-3 text-sm text-danger">{erroEnvio}</p>}
-      <div className="flex flex-wrap gap-3">
-        <Button type="submit" loading={enviando}>{inicial ? 'Salvar alterações' : 'Enviar inscrição'}</Button>
-        {onCancel && <Button variant="secondary" onClick={onCancel}>Cancelar edição</Button>}
-      </div>
-    </form>
-  )
-}
-
-function Resumo({ i, aberto, onEditar, onCancelada, recemEnviada }: { i: Inscricao; aberto: boolean; onEditar: () => void; onCancelada: () => void; recemEnviada: boolean }) {
-  const user = useCurrentUser()
-  const [confirmando, setConfirmando] = useState(false)
-  const [cancelando, setCancelando] = useState(false)
-  const [erro, setErro] = useState<string>()
-  const botaoCancelar = useRef<HTMLButtonElement>(null)
-
-  const cancelar = async () => {
-    setCancelando(true)
-    setErro(undefined)
-    try {
-      await cancelInscricao(user, i.id)
-      onCancelada()
-    } catch (e) {
-      setErro(e instanceof Error ? e.message : 'Não foi possível cancelar.')
-      setCancelando(false)
-    }
-  }
-
+function Resumo({ i, recemEnviada }: { i: Inscricao; recemEnviada: boolean }) {
   return (
     <div className="space-y-5">
       {recemEnviada && (
@@ -168,34 +41,9 @@ function Resumo({ i, aberto, onEditar, onCancelada, recemEnviada }: { i: Inscric
         </p>
       </SectionCard>
 
-      {erro && <p role="alert" className="text-sm text-danger">{erro}</p>}
-      {aberto ? (
-        confirmando ? (
-          <div role="group" aria-label="Confirmar cancelamento" className="space-y-3 rounded-lg border border-border p-4">
-            <p className="text-sm">Cancelar sua inscrição? Você poderá se inscrever de novo enquanto o período estiver aberto.</p>
-            <div className="flex gap-3">
-              <Button variant="danger" loading={cancelando} onClick={cancelar}>Sim, cancelar inscrição</Button>
-              <Button
-                variant="secondary"
-                autoFocus
-                onClick={() => {
-                  setConfirmando(false)
-                  requestAnimationFrame(() => botaoCancelar.current?.focus())
-                }}
-              >
-                Manter inscrição
-              </Button>
-            </div>
-          </div>
-        ) : (
-          <div className="flex flex-wrap gap-3">
-            <Button onClick={onEditar}>Editar inscrição</Button>
-            <Button ref={botaoCancelar} variant="secondary" onClick={() => setConfirmando(true)}>Cancelar inscrição</Button>
-          </div>
-        )
-      ) : (
-        <p className="text-sm text-ink-muted">O período terminou, então a inscrição não pode mais ser alterada. Em caso de erro, procure a coordenação.</p>
-      )}
+      <p className="rounded-lg border border-border p-4 text-sm">
+        <span className="font-medium">Precisa corrigir algo ou cancelar?</span> Só a coordenação altera ou cancela inscrições. Procure a coordenação do seu curso.
+      </p>
     </div>
   )
 }
@@ -229,10 +77,9 @@ export default function InscricaoPage() {
     const aceita = solicitacoes.find((s) => s.status === 'aceita')
     return { periodo, minha, professores, sugestaoProfessorId: aceita?.professorId }
   }, [user.id])
-  const [editando, setEditando] = useState(false)
   const [recemEnviada, setRecemEnviada] = useState(false)
-  // Resultado local da última ação: evita mostrar dados antigos enquanto a lista recarrega.
-  const [local, setLocal] = useState<{ valor: Inscricao | null }>()
+  // Ponte local entre o envio e o fim do reload: só vale enquanto os dados do servidor são os mesmos de antes do envio.
+  const [local, setLocal] = useState<{ valor: Inscricao; base: unknown }>()
 
   return (
     <>
@@ -245,27 +92,28 @@ export default function InscricaoPage() {
       >
         {({ periodo, minha: minhaServidor, professores, sugestaoProfessorId }) => {
           if (!periodo) return null
-          const minha = local ? local.valor : minhaServidor
-          const aberto = periodo.situacao === 'aberto'
+          const minha = minhaServidor ?? (local && state.status === 'success' && state.data === local.base ? local.valor : null)
           return (
             <div className="space-y-6">
               <Periodo p={periodo} />
-              {minha && !editando ? (
-                <Resumo
-                  i={minha}
-                  aberto={aberto}
-                  recemEnviada={recemEnviada}
-                  onEditar={() => { setEditando(true); setRecemEnviada(false) }}
-                  onCancelada={() => { setRecemEnviada(false); setLocal({ valor: null }); reload() }}
-                />
-              ) : aberto ? (
-                <InscricaoForm
-                  professores={professores}
-                  inicial={editando ? (minha ?? undefined) : undefined}
-                  sugestaoProfessorId={sugestaoProfessorId}
-                  onSaved={(salva) => { setLocal({ valor: salva }); setEditando(false); setRecemEnviada(true); reload() }}
-                  onCancel={editando ? () => setEditando(false) : undefined}
-                />
+              {minha ? (
+                <Resumo i={minha} recemEnviada={recemEnviada} />
+              ) : periodo.situacao === 'aberto' ? (
+                <SectionCard title="Seus dados de inscrição" description="Depois de enviada, só a coordenação pode alterar a inscrição. Confira antes de enviar.">
+                  <InscricaoForm
+                    professores={professores}
+                    alunoNome={user.nome}
+                    matricula={user.matricula ?? ''}
+                    sugestaoProfessorId={sugestaoProfessorId}
+                    submitLabel="Enviar inscrição"
+                    onSubmit={async (dados) => {
+                      const salva = await createInscricao(user, dados)
+                      setLocal({ valor: salva, base: state.status === 'success' ? state.data : null })
+                      setRecemEnviada(true)
+                      reload()
+                    }}
+                  />
+                </SectionCard>
               ) : (
                 <EmptyState
                   title={periodo.situacao === 'antes' ? 'As inscrições ainda não abriram' : 'As inscrições foram encerradas'}

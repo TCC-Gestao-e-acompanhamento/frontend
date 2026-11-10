@@ -1,12 +1,13 @@
 import { useState, type FormEvent } from 'react'
 import { useCurrentUser } from '../../auth/useAuth'
+import { InscricaoForm } from '../../components/InscricaoForm'
 import { StatusBadge } from '../../components/StatusBadge'
-import { Badge, Button, DataBoundary, EmptyState, Field, Icon, Input, PageHeader, SectionCard, Select, StatCard, StatGroup } from '../../design-system'
+import { Badge, Button, DataBoundary, EmptyState, Field, Icon, Input, Modal, PageHeader, SectionCard, Select, StatCard, StatGroup } from '../../design-system'
 import { useAsync } from '../../hooks/useAsync'
 import { baixarCsv, buildCsv } from '../../lib/csv'
 import { daysUntil, formatDate, formatDateLong, plural } from '../../lib/format'
-import { getPeriodoInscricao, listInscricoes, savePeriodoInscricao } from '../../services/api'
-import type { Fase, Inscricao, PeriodoInscricao } from '../../types'
+import { cancelInscricao, getPeriodoInscricao, listInscricoes, listProfessoresPublicos, savePeriodoInscricao, updateInscricao } from '../../services/api'
+import type { Fase, Inscricao, PeriodoInscricao, ProfessorPublico } from '../../types'
 
 function PeriodoCard({ periodo, onSaved }: { periodo: PeriodoInscricao | null; onSaved: () => void }) {
   const user = useCurrentUser()
@@ -71,10 +72,10 @@ function PeriodoCard({ periodo, onSaved }: { periodo: PeriodoInscricao | null; o
   )
 }
 
-function Tabela({ itens }: { itens: Inscricao[] }) {
+function Tabela({ itens, onEditar, onCancelar }: { itens: Inscricao[]; onEditar: (i: Inscricao) => void; onCancelar: (i: Inscricao) => void }) {
   return (
     <div className="overflow-x-auto">
-      <table className="w-full min-w-[52rem] text-left text-sm">
+      <table className="w-full min-w-[58rem] text-left text-sm">
         <caption className="sr-only">Inscritos no TCC</caption>
         <thead className="border-b border-border text-xs tracking-wide text-ink-muted uppercase">
           <tr>
@@ -82,7 +83,8 @@ function Tabela({ itens }: { itens: Inscricao[] }) {
             <th scope="col" className="py-2 pr-4 font-medium">TCC</th>
             <th scope="col" className="py-2 pr-4 font-medium">Orientador</th>
             <th scope="col" className="py-2 pr-4 font-medium">Aviso ao orientador</th>
-            <th scope="col" className="py-2 font-medium">Inscrição</th>
+            <th scope="col" className="py-2 pr-4 font-medium">Inscrição</th>
+            <th scope="col" className="py-2 font-medium"><span className="sr-only">Ações</span></th>
           </tr>
         </thead>
         <tbody className="divide-y divide-border">
@@ -103,7 +105,13 @@ function Tabela({ itens }: { itens: Inscricao[] }) {
                   <Badge tone={i.ciente ? 'success' : 'warning'}>{i.ciente ? 'Ciente' : 'Aguardando ciência'}</Badge>
                 </div>
               </td>
-              <td className="py-3">{formatDate(i.atualizadaEm ?? i.criadaEm)}</td>
+              <td className="py-3 pr-4">{formatDate(i.atualizadaEm ?? i.criadaEm)}</td>
+              <td className="py-3">
+                <div className="flex gap-2">
+                  <Button size="sm" variant="secondary" onClick={() => onEditar(i)} aria-label={`Editar inscrição de ${i.alunoNome}`}>Editar</Button>
+                  <Button size="sm" variant="secondary" onClick={() => onCancelar(i)} aria-label={`Cancelar inscrição de ${i.alunoNome}`}>Cancelar</Button>
+                </div>
+              </td>
             </tr>
           ))}
         </tbody>
@@ -112,20 +120,53 @@ function Tabela({ itens }: { itens: Inscricao[] }) {
   )
 }
 
+function CancelarInscricao({ i, onDone, onClose }: { i: Inscricao; onDone: (m: string) => void; onClose: () => void }) {
+  const user = useCurrentUser()
+  const [cancelando, setCancelando] = useState(false)
+  const [erro, setErro] = useState<string>()
+  const confirmar = async () => {
+    setCancelando(true)
+    setErro(undefined)
+    try {
+      await cancelInscricao(user, i.id)
+      onDone(`Inscrição de ${i.alunoNome} cancelada.`)
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : 'Não foi possível cancelar.')
+      setCancelando(false)
+    }
+  }
+  return (
+    <div className="space-y-4">
+      <p className="text-sm">
+        Cancelar a inscrição de <span className="font-medium">{i.alunoNome}</span> ({i.fase === 'TCC1' ? 'TCC 1' : 'TCC 2'}, orientador {i.orientadorNome})? Ela some desta lista.
+        O aluno poderá enviar uma nova inscrição se o período ainda estiver aberto.
+      </p>
+      {erro && <p role="alert" className="text-sm text-danger">{erro}</p>}
+      <div className="flex justify-end gap-2">
+        <Button variant="secondary" autoFocus onClick={onClose}>Manter inscrição</Button>
+        <Button variant="danger" loading={cancelando} onClick={confirmar}>Sim, cancelar inscrição</Button>
+      </div>
+    </div>
+  )
+}
+
 export default function InscricoesPage() {
   const user = useCurrentUser()
   const { state, reload } = useAsync(async () => {
-    const [periodo, inscritos] = await Promise.all([getPeriodoInscricao(), listInscricoes(user)])
-    return { periodo, inscritos }
+    const [periodo, inscritos, professores] = await Promise.all([getPeriodoInscricao(), listInscricoes(user), listProfessoresPublicos()])
+    return { periodo, inscritos, professores }
   }, [user.id])
   const [busca, setBusca] = useState('')
   const [fase, setFase] = useState<'' | Fase>('')
+  const [acao, setAcao] = useState<{ i: Inscricao; tipo: 'editar' | 'cancelar' } | null>(null)
+  const [aviso, setAviso] = useState<string>()
+  const fechar = () => setAcao(null)
 
   return (
     <>
       <PageHeader title="Inscrições no TCC" description="Defina o período e acompanhe quem se inscreveu e com quem pretende fazer o TCC." />
       <DataBoundary state={state} reload={reload}>
-        {({ periodo, inscritos }) => {
+        {({ periodo, inscritos, professores }: { periodo: PeriodoInscricao | null; inscritos: Inscricao[]; professores: ProfessorPublico[] }) => {
           const q = busca.trim().toLowerCase()
           const filtrados = inscritos.filter(
             (i) =>
@@ -151,6 +192,7 @@ export default function InscricoesPage() {
           }
           return (
             <div className="space-y-6">
+              {aviso && <p role="status" className="rounded-lg border border-border bg-surface-muted p-3 text-sm">{aviso}</p>}
               <PeriodoCard periodo={periodo} onSaved={reload} />
 
               <StatGroup>
@@ -186,10 +228,34 @@ export default function InscricoesPage() {
                         )}
                       </Field>
                     </div>
-                    {filtrados.length ? <Tabela itens={filtrados} /> : <p role="status" className="py-4 text-center text-sm text-ink-muted">Nenhum resultado para os filtros aplicados.</p>}
+                    {filtrados.length ? <Tabela itens={filtrados} onEditar={(i) => { setAviso(undefined); setAcao({ i, tipo: 'editar' }) }} onCancelar={(i) => { setAviso(undefined); setAcao({ i, tipo: 'cancelar' }) }} /> : <p role="status" className="py-4 text-center text-sm text-ink-muted">Nenhum resultado para os filtros aplicados.</p>}
                   </div>
                 )}
               </SectionCard>
+
+              <Modal open={acao?.tipo === 'editar'} title="Editar inscrição" onClose={fechar}>
+                {acao?.tipo === 'editar' && (
+                  <InscricaoForm
+                    professores={professores}
+                    alunoNome={acao.i.alunoNome}
+                    matricula={acao.i.matricula}
+                    inicial={acao.i}
+                    submitLabel="Salvar alterações"
+                    onCancel={fechar}
+                    onSubmit={async (dados) => {
+                      await updateInscricao(user, acao.i.id, dados)
+                      setAviso(`Inscrição de ${acao.i.alunoNome} atualizada. O orientador é avisado de novo se mudou.`)
+                      fechar()
+                      reload()
+                    }}
+                  />
+                )}
+              </Modal>
+              <Modal open={acao?.tipo === 'cancelar'} title="Cancelar inscrição" onClose={fechar}>
+                {acao?.tipo === 'cancelar' && (
+                  <CancelarInscricao i={acao.i} onClose={fechar} onDone={(m) => { setAviso(m); fechar(); reload() }} />
+                )}
+              </Modal>
             </div>
           )
         }}
