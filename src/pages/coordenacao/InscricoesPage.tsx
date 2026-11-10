@@ -74,7 +74,7 @@ function PeriodoCard({ periodo, onSaved }: { periodo: PeriodoInscricao | null; o
 
 function Tabela({ itens, onEditar, onCancelar }: { itens: Inscricao[]; onEditar: (i: Inscricao) => void; onCancelar: (i: Inscricao) => void }) {
   return (
-    <div className="overflow-x-auto">
+    <div className="relative overflow-x-auto">
       <table className="w-full min-w-[58rem] text-left text-sm">
         <caption className="sr-only">Inscritos no TCC</caption>
         <thead className="border-b border-border text-xs tracking-wide text-ink-muted uppercase">

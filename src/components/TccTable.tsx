@@ -14,7 +14,7 @@ interface Props {
 
 export function TccTable({ items, basePath, showOrientador = false, caption }: Props) {
   return (
-    <div className="overflow-x-auto">
+    <div className="relative overflow-x-auto">
       <table className="w-full min-w-[40rem] text-left text-sm">
         <caption className="sr-only">{caption}</caption>
         <thead className="border-b border-border text-xs tracking-wide text-ink-muted uppercase">
