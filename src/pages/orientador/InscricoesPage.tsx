@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useContext, useState } from 'react'
 import { useCurrentUser } from '../../auth/useAuth'
+import { ShellContext } from '../../layouts/shellContext'
 import { Badge, Button, DataBoundary, PageHeader, SectionCard } from '../../design-system'
 import { useAsync } from '../../hooks/useAsync'
 import { formatDate, plural } from '../../lib/format'
@@ -7,6 +8,7 @@ import { listInscricoes, marcarCiente } from '../../services/api'
 
 export default function InscricoesRecebidasPage() {
   const user = useCurrentUser()
+  const { refreshContador } = useContext(ShellContext)
   const { state, reload } = useAsync(() => listInscricoes(user), [user.id])
   const [salvando, setSalvando] = useState<string>()
   const [erro, setErro] = useState<string>()
@@ -17,6 +19,7 @@ export default function InscricoesRecebidasPage() {
     try {
       await marcarCiente(user, id)
       reload()
+      refreshContador()
     } catch (e) {
       setErro(e instanceof Error ? e.message : 'Não foi possível registrar a ciência.')
     } finally {

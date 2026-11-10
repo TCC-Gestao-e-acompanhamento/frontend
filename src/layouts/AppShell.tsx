@@ -1,13 +1,13 @@
-import { useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useCurrentUser, useAuth } from '../auth/useAuth'
 import { Badge, Button, Icon } from '../design-system'
-import { useAsync } from '../hooks/useAsync'
 import { contarInscricoesNovas } from '../services/api'
 import { cn, initials } from '../lib/format'
 import { NAV, ROLE_LABEL } from '../routes/navigation'
 import { Brand } from './Brand'
 import { SimulateStates } from './SimulateStates'
+import { ShellContext } from './shellContext'
 
 /** Layout único da área logada; a navegação muda conforme o perfil. */
 export function AppShell({ children }: { children: ReactNode }) {
@@ -18,9 +18,16 @@ export function AppShell({ children }: { children: ReactNode }) {
   // Menu móvel aberto somente na rota em que foi aberto: fecha sozinho ao navegar.
   const [openAt, setOpenAt] = useState<string | null>(null)
   const open = openAt === pathname
-  // Contador de inscrições novas (orientador); atualiza a cada navegação.
-  const novas = useAsync(() => contarInscricoesNovas(user), [user.id, pathname])
-  const totalNovas = novas.state.status === 'success' ? novas.state.data : 0
+  // Contador de inscrições novas (só orientador). Guarda o último valor, então não pisca ao navegar.
+  const [totalNovas, setTotalNovas] = useState(0)
+  const refreshContador = useCallback(() => {
+    if (user.role !== 'orientador') return
+    contarInscricoesNovas(user).then(setTotalNovas, () => {})
+  }, [user])
+  useEffect(() => {
+    refreshContador()
+  }, [refreshContador, pathname])
+  const shellValue = useMemo(() => ({ refreshContador }), [refreshContador])
 
   const sair = () => {
     logout()
@@ -109,7 +116,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </aside>
 
         <main id="conteudo" tabIndex={-1} className="mx-auto w-full max-w-6xl px-4 py-6 lg:px-8 lg:py-8">
-          {children}
+          <ShellContext.Provider value={shellValue}>{children}</ShellContext.Provider>
         </main>
       </div>
     </div>
