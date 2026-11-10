@@ -112,7 +112,7 @@ function PerfilForm({ inicial, cursos, catalogo }: { inicial: ProfessorPublico; 
                 )}
               </Field>
             </div>
-            <Button variant="secondary" onClick={addArea} className="mb-[1.625rem]">Adicionar</Button>
+            <Button variant="secondary" onClick={addArea} className="mb-[1.625rem]">Adicionar área</Button>
           </div>
         </SectionCard>
 

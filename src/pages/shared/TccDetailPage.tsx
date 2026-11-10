@@ -101,7 +101,7 @@ export default function TccDetailPage() {
               </div>
             </SectionCard>
 
-            <Tabs
+            <Tabs<Aba>
               label="Detalhes do TCC"
               value={aba}
               onChange={setAba}

@@ -25,7 +25,7 @@ export default function FeedbacksPage() {
           const abertas = d.filter((f) => f.tipo === 'correcao' && !f.resolvido)
           const lista = filtro === 'abertas' ? abertas : d
           return (
-            <Tabs
+            <Tabs<Filtro>
               label="Filtrar feedbacks"
               value={filtro}
               onChange={setFiltro}
@@ -34,7 +34,7 @@ export default function FeedbacksPage() {
                 { key: 'todos', label: 'Todos', count: d.length },
               ]}
             >
-              {lista.length ? <FeedbackList items={lista} /> : <p className="text-sm text-ink-muted">Nenhuma correção pendente. 🎉</p>}
+              {lista.length ? <FeedbackList items={lista} /> : <p className="text-sm text-ink-muted">Nenhuma correção pendente.</p>}
             </Tabs>
           )
         }}

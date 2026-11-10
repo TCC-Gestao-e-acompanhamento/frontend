@@ -10,7 +10,7 @@ export interface TabItem<K extends string> {
 interface TabsProps<K extends string> {
   items: TabItem<K>[]
   value: K
-  onChange: (key: K) => void
+  onChange(key: K): void
   label: string
   children?: ReactNode
 }

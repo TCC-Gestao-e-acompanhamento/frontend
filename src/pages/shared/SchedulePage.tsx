@@ -38,7 +38,7 @@ export default function SchedulePage() {
             return acc
           }, {})
           return (
-            <Tabs
+            <Tabs<Filtro>
               label="Filtrar atividades"
               value={filtro}
               onChange={setFiltro}

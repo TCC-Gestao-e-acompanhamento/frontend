@@ -46,7 +46,7 @@ export default function TccListPage() {
               <Select {...p} value={status} onChange={(e) => setStatus(e.target.value as '' | TccStatus)}>
                 <option value="">Todas</option>
                 <option value="em_andamento">Em andamento</option>
-                <option value="atencao">Atenção</option>
+                <option value="atencao">Prazo próximo</option>
                 <option value="atrasado">Atrasado</option>
               </Select>
             )}

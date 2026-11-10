@@ -4,7 +4,7 @@ import type { AtividadeStatus, BancaSituacao, DocumentoStatus, SolicitacaoStatus
 const MAPS = {
   tcc: {
     em_andamento: ['brand', 'Em andamento'],
-    atencao: ['warning', 'Atenção'],
+    atencao: ['warning', 'Prazo próximo'],
     atrasado: ['danger', 'Atrasado'],
     concluido: ['success', 'Concluído'],
   } satisfies Record<TccStatus, [Tone, string]>,
