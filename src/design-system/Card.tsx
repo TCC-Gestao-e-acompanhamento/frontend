@@ -40,14 +40,23 @@ interface StatCardProps {
   tone?: 'default' | 'warning' | 'danger' | 'success'
 }
 
-const toneText = { default: 'text-brand-700', warning: 'text-warning', danger: 'text-danger', success: 'text-success' }
+const toneText = { default: 'text-ink', warning: 'text-warning', danger: 'text-danger', success: 'text-success' }
+
+/** Indicadores lado a lado, separados por filetes finos dentro de uma única moldura. */
+export function StatGroup({ children, className }: { children: ReactNode; className?: string }) {
+  return (
+    <div className={cn('grid gap-px overflow-hidden rounded-card border border-border bg-border sm:grid-cols-2 lg:grid-flow-col lg:auto-cols-fr', className)}>
+      {children}
+    </div>
+  )
+}
 
 export function StatCard({ label, value, hint, tone = 'default' }: StatCardProps) {
   return (
-    <Card className="p-5">
+    <div className="bg-surface p-5">
       <p className="text-sm text-ink-muted">{label}</p>
-      <p className={cn('mt-1 text-3xl font-semibold tabular-nums', toneText[tone])}>{value}</p>
+      <p className={cn('mt-1 text-2xl font-semibold tabular-nums', toneText[tone])}>{value}</p>
       {hint && <p className="mt-1 text-xs text-ink-muted">{hint}</p>}
-    </Card>
+    </div>
   )
 }

@@ -2,8 +2,9 @@ import { StatusBadge } from '../../components/StatusBadge'
 import { TccTable } from '../../components/TccTable'
 import { DeadlineList } from '../../components/DeadlineList'
 import { useCurrentUser } from '../../auth/useAuth'
-import { ButtonLink, DataBoundary, PageHeader, ProgressBar, SectionCard, StatCard } from '../../design-system'
+import { ButtonLink, DataBoundary, PageHeader, ProgressBar, SectionCard, StatCard, StatGroup } from '../../design-system'
 import { useAsync } from '../../hooks/useAsync'
+import { plural } from '../../lib/format'
 import { listBancas, listPrazosInstitucionais, listTccs } from '../../services/api'
 
 export default function CoordenacaoDashboard() {
@@ -35,19 +36,19 @@ export default function CoordenacaoDashboard() {
           )
           return (
             <div className="space-y-6">
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <StatGroup>
                 <StatCard label="TCCs cadastrados" value={tccs.length} />
                 <StatCard label="TCC 1 / TCC 2" value={`${tcc1} / ${tcc2}`} />
                 <StatCard label="Bancas agendadas" value={bancas.filter((b) => b.situacao === 'agendada').length} hint={`${bancas.filter((b) => b.situacao === 'a_definir').length} a definir`} tone="success" />
-                <StatCard label="Com pendências" value={pendentes.length} tone="danger" />
-              </div>
+                <StatCard label="Trabalhos com pendências" value={pendentes.length} tone={pendentes.length ? 'danger' : 'default'} hint="Prazo próximo ou atrasados" />
+              </StatGroup>
 
               <div className="grid gap-6 lg:grid-cols-2">
                 <SectionCard title="Distribuição entre TCC 1 e TCC 2">
                   <div className="space-y-4">
                     {[{ nome: 'TCC 1', n: tcc1 }, { nome: 'TCC 2', n: tcc2 }].map((f) => (
                       <div key={f.nome}>
-                        <div className="mb-1 flex justify-between text-sm"><span>{f.nome}</span><span className="font-medium">{f.n} trabalho(s)</span></div>
+                        <div className="mb-1 flex justify-between text-sm"><span>{f.nome}</span><span className="font-medium">{plural(f.n, 'trabalho', 'trabalhos')}</span></div>
                         <ProgressBar value={Math.round((f.n / tccs.length) * 100)} label={`Proporção em ${f.nome}`} />
                       </div>
                     ))}
@@ -58,14 +59,14 @@ export default function CoordenacaoDashboard() {
                     {porOrientador.map((o) => (
                       <li key={o.nome} className="flex justify-between py-2.5 first:pt-0 last:pb-0">
                         <span>{o.nome}</span>
-                        <span className="text-sm text-ink-muted">{o.total} orientando(s)</span>
+                        <span className="text-sm text-ink-muted">{plural(o.total, 'orientando', 'orientandos')}</span>
                       </li>
                     ))}
                   </ul>
                 </SectionCard>
               </div>
 
-              <SectionCard title="Pendências" description="Trabalhos em atenção ou atrasados" action={<ButtonLink to="/coordenacao/tccs" variant="ghost" size="sm">Todos os TCCs</ButtonLink>}>
+              <SectionCard title="Pendências" description="Trabalhos com prazo próximo ou atrasados" action={<ButtonLink to="/coordenacao/tccs" variant="ghost" size="sm">Todos os TCCs</ButtonLink>}>
                 {pendentes.length ? <TccTable items={pendentes} basePath="/coordenacao/tccs" showOrientador caption="TCCs com pendências" /> : <p className="text-sm text-ink-muted">Nenhum trabalho com pendências.</p>}
               </SectionCard>
 
