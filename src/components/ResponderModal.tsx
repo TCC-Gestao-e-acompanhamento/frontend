@@ -8,7 +8,7 @@ interface Props {
   solicitacao: Solicitacao | null
   decisao: 'aceita' | 'recusada'
   onClose: () => void
-  onDone: () => void
+  onDone: (mensagem: string) => void
 }
 
 /** Aceite/recusa com mensagem opcional. Usado no dashboard e no detalhe. */
@@ -32,7 +32,7 @@ export function ResponderModal({ solicitacao, decisao, onClose, onDone }: Props)
     try {
       await responderSolicitacao(user, solicitacao.id, { decisao, texto })
       setTexto('')
-      onDone()
+      onDone(aceitar ? `Solicitação de ${solicitacao.alunoNome} aceita.` : `Solicitação de ${solicitacao.alunoNome} recusada.`)
       onClose()
     } catch (e) {
       setErro(e instanceof Error ? e.message : 'Não foi possível registrar a resposta.')

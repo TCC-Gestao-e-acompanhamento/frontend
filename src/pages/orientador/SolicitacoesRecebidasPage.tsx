@@ -12,6 +12,7 @@ type Aba = 'pendentes' | 'historico'
 export default function SolicitacoesRecebidasPage() {
   const user = useCurrentUser()
   const { state, reload } = useAsync(() => listSolicitacoes(user), [user.id])
+  const [aviso, setAviso] = useState<string>()
   const [aba, setAba] = useState<Aba>('pendentes')
   const [alvo, setAlvo] = useState<{ s: Solicitacao; decisao: 'aceita' | 'recusada' } | null>(null)
 
@@ -29,7 +30,8 @@ export default function SolicitacoesRecebidasPage() {
           const historico = d.filter((s) => s.status !== 'pendente')
           return (
             <>
-              <Tabs
+              {aviso && <p role="status" className="mb-4 rounded-lg bg-accent-50 p-3 text-sm text-success">{aviso}</p>}
+              <Tabs<Aba>
                 label="Solicitações"
                 value={aba}
                 onChange={setAba}
@@ -61,7 +63,7 @@ export default function SolicitacoesRecebidasPage() {
                   </ul>
                 )}
               </Tabs>
-              <ResponderModal solicitacao={alvo?.s ?? null} decisao={alvo?.decisao ?? 'aceita'} onClose={() => setAlvo(null)} onDone={reload} />
+              <ResponderModal solicitacao={alvo?.s ?? null} decisao={alvo?.decisao ?? 'aceita'} onClose={() => setAlvo(null)} onDone={(m) => { setAviso(m); reload() }} />
             </>
           )
         }}
