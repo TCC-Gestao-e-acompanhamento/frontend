@@ -18,7 +18,13 @@ const PATHS = {
   search: 'M11 18a7 7 0 100-14 7 7 0 000 14zM20 20l-4-4',
   arrow: 'M5 12h14M13 6l6 6-6 6',
   clock: 'M12 21a9 9 0 100-18 9 9 0 000 18zM12 7v5l3 2',
+  expand: 'M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5',
+  shrink: 'M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5',
+  plus: 'M12 5v14M5 12h14',
+  minus: 'M5 12h14',
+  download: 'M12 4v12M7 11l5 5 5-5M5 20h14',
   send: 'M21 3L3 10l7 3 3 7zM10 13l11-10',
+  trash: 'M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3',
   pin:'M12 21s7-6 7-11a7 7 0 10-14 0c0 5 7 11 7 11zM12 12a2 2 0 100-4 2 2 0 000 4z',
 } as const
 

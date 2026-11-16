@@ -1,6 +1,6 @@
 import { cn } from '../lib/format'
 
-export type Variant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'inverse' | 'outline-inverse'
+export type Variant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'danger-quiet' | 'success' | 'neutral' | 'inverse' | 'outline-inverse'
 export type Size = 'md' | 'sm'
 
 const base =
@@ -10,6 +10,11 @@ const variants: Record<Variant, string> = {
   secondary: 'border border-border bg-surface text-ink hover:bg-surface-muted',
   ghost: 'text-brand-700 hover:bg-brand-50',
   danger: 'bg-danger text-white hover:opacity-90',
+  // Ação destrutiva sem alarde: texto vermelho sobre fundo claro (a confirmação é que usa o vermelho cheio).
+  'danger-quiet': 'border border-border bg-surface text-danger hover:bg-danger/10',
+  success: 'bg-accent-600 text-white hover:bg-accent-700',
+  // Ação de apoio, sem destaque (ex.: "Ver no documento"): fundo cinza.
+  neutral: 'bg-ink/10 text-ink hover:bg-ink/15',
   // Sobre fundo azul escuro (faixa de destaque).
   inverse: 'bg-white text-brand-700 hover:bg-brand-50',
   'outline-inverse': 'border border-white/50 text-white hover:bg-white/10',
