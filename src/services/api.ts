@@ -55,6 +55,7 @@ import type {
   NovaSolicitacao,
   NovoDocumento,
   NovoFeedback,
+  AtualizacaoFeedback,
   PerfilPublicoInput,
   ProfessorPublico,
   Solicitacao,
@@ -248,7 +249,8 @@ function docView(d: DocumentoRecord): Documento {
   const doDoc = anotacoes.filter((a) => a.documentoId === d.id)
   const correcoesPendentes =
     feedbacks.filter((f) => f.documentoId === d.id && f.tipo === 'correcao' && !f.resolvido).length + doDoc.filter((a) => a.tipo === 'correcao' && !a.resolvida).length
-  return { ...d, alunoNome: aluno(d.tccId), anotacoes: { total: doDoc.length, abertas: doDoc.filter((a) => !a.resolvida).length }, correcoesPendentes }
+  const ultimaVersao = !documentos.some((o) => o.tccId === d.tccId && o.nome === d.nome && o.versao > d.versao)
+  return { ...d, alunoNome: aluno(d.tccId), anotacoes: { total: doDoc.length, abertas: doDoc.filter((a) => !a.resolvida).length }, correcoesPendentes, ultimaVersao }
 }
 
 export function listDocumentos(user: User, tccId?: string): Promise<Documento[]> {
@@ -282,7 +284,7 @@ export async function sendDocumento(user: User, input: NovoDocumento): Promise<D
     versao,
     tipo: input.tipo,
     enviadoEm: addDays(0),
-    status: 'enviado' as const,
+    status: 'pendente_revisao' as const,
     arquivoUrl: input.arquivoUrl,
   }
   documentos.push(rec)
@@ -319,10 +321,14 @@ export function listFeedbacks(user: User, tccId?: string): Promise<Feedback[]> {
 export async function addFeedback(user: User, input: NovoFeedback): Promise<void> {
   if (user.role !== 'orientador') throw new ApiError('Somente o orientador registra feedbacks', 403)
   assertAccess(user, input.tccId)
-  if (input.documentoId && documentos.find((d) => d.id === input.documentoId)?.tccId !== input.tccId) {
-    throw new ApiError('Documento não encontrado neste TCC', 404)
-  }
+  const doc = input.documentoId ? documentos.find((d) => d.id === input.documentoId) : undefined
+  if (input.documentoId && doc?.tccId !== input.tccId) throw new ApiError('Documento não encontrado neste TCC', 404)
   if (input.texto.trim().length < 5) throw new ApiError('Escreva ao menos 5 caracteres.', 422)
+  if (input.texto.length > 2000) throw new ApiError('O texto é longo demais (máximo de 2000 caracteres).', 422)
+  // cada versão tem um único retorno geral: depois de criado, ele é editado
+  if (doc?.status === 'aprovado') throw new ApiError('Esta versão já foi aprovada e não aceita mais retorno geral.', 409)
+  if (doc && feedbacks.some((f) => f.documentoId === doc.id)) throw new ApiError('Esta versão já tem um retorno geral. Edite o que já existe.', 409)
+  if (doc && input.tipo === 'correcao') registrarPedidoDeCorrecao(doc)
   feedbacks.push({
     id: `f${Date.now()}${Math.random().toString(36).slice(2, 6)}`,
     tccId: input.tccId,
@@ -334,6 +340,40 @@ export async function addFeedback(user: User, input: NovoFeedback): Promise<void
     resolvido: input.tipo === 'comentario',
   })
   await new Promise((r) => setTimeout(r, 400))
+}
+
+/** O orientador autor edita o texto e o tipo do retorno geral. Mudar o tipo recalcula se há correção pendente. */
+export async function updateFeedback(user: User, id: string, input: AtualizacaoFeedback): Promise<void> {
+  const fb = feedbacks.find((f) => f.id === id)
+  if (!fb) throw new ApiError('Feedback não encontrado', 404)
+  assertAccess(user, fb.tccId)
+  if (user.role !== 'orientador' || fb.autorId !== user.id) throw new ApiError('Somente quem escreveu o feedback pode editá-lo', 403)
+  if (input.tipo !== 'comentario' && input.tipo !== 'correcao') throw new ApiError('Tipo inválido.', 422)
+  if (input.texto.trim().length < 5) throw new ApiError('Escreva ao menos 5 caracteres.', 422)
+  if (input.texto.length > 2000) throw new ApiError('O texto é longo demais (máximo de 2000 caracteres).', 422)
+  const doc = fb.documentoId ? documentos.find((d) => d.id === fb.documentoId) : undefined
+  if (doc?.status === 'aprovado') throw new ApiError('Esta versão já foi aprovada e não aceita mais alterações no retorno.', 409)
+  if (input.tipo !== fb.tipo) {
+    fb.tipo = input.tipo
+    fb.resolvido = input.tipo === 'comentario'
+    if (doc && input.tipo === 'correcao') registrarPedidoDeCorrecao(doc)
+  }
+  // correção reescrita volta a ficar pendente: o aluno precisa ver o que mudou
+  if (fb.tipo === 'correcao' && input.texto.trim() !== fb.texto) fb.resolvido = false
+  fb.texto = input.texto.trim()
+  await wait(300)
+}
+
+/** Só o orientador do TCC aprova, e só a versão mais recente do documento. */
+export async function aprovarDocumento(user: User, id: string): Promise<void> {
+  const doc = documentoAcessivel(user, id)
+  if (user.role !== 'orientador') throw new ApiError('Somente o orientador aprova uma versão', 403)
+  if (doc.status === 'aprovado') throw new ApiError('Esta versão já está aprovada.', 409)
+  if (documentos.some((o) => o.tccId === doc.tccId && o.nome === doc.nome && o.versao > doc.versao)) {
+    throw new ApiError('Só a versão mais recente pode ser aprovada.', 409)
+  }
+  doc.status = 'aprovado'
+  await wait(300)
 }
 
 /** Aluno marca como resolvida uma correção pedida pelo orientador. */
@@ -788,6 +828,11 @@ export function listAnotacoes(user: User, documentoId: string): Promise<Anotacao
   return settle(data, [])
 }
 
+/** Pedir uma correção (em trecho ou no retorno geral) tira a versão de "pendente revisão" e a marca como "correção solicitada". */
+function registrarPedidoDeCorrecao(doc: DocumentoRecord): void {
+  if (doc.status === 'pendente_revisao') doc.status = 'correcao'
+}
+
 /** Somente o orientador do TCC comenta trechos do documento do orientando. */
 export async function createAnotacao(user: User, input: NovaAnotacao): Promise<Anotacao> {
   const doc = documentoAcessivel(user, input.documentoId)
@@ -815,6 +860,7 @@ export async function createAnotacao(user: User, input: NovaAnotacao): Promise<A
     respostas: [],
   }
   anotacoes.push(rec)
+  if (input.tipo === 'correcao') registrarPedidoDeCorrecao(doc)
   await wait(300)
   return toAnotacao(rec)
 }
@@ -868,6 +914,7 @@ export async function createAnotacaoPdf(user: User, input: NovaAnotacaoPdf): Pro
     imagem: input.imagem,
   }
   anotacoes.push(rec)
+  if (input.tipo === 'correcao') registrarPedidoDeCorrecao(doc)
   await wait(300)
   return toAnotacao(rec)
 }

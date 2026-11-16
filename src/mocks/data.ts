@@ -107,13 +107,13 @@ export interface DocumentoRecord {
 export const documentos: DocumentoRecord[] = [
   { id: 'd1', tccId: 't1', nome: 'Monografia', versao: 1, tipo: 'Monografia', enviadoEm: addDays(-30), status: 'correcao', arquivoUrl: publico('exemplos/monografia-exemplo.pdf') },
   { id: 'd2', tccId: 't1', nome: 'Monografia', versao: 2, tipo: 'Monografia', enviadoEm: addDays(-15), status: 'correcao', arquivoUrl: publico('exemplos/monografia-exemplo.pdf') },
-  { id: 'd3', tccId: 't1', nome: 'Monografia', versao: 3, tipo: 'Monografia', enviadoEm: addDays(-2), status: 'em_analise', arquivoUrl: publico('exemplos/monografia-exemplo.pdf') },
+  { id: 'd3', tccId: 't1', nome: 'Monografia', versao: 3, tipo: 'Monografia', enviadoEm: addDays(-2), status: 'correcao', arquivoUrl: publico('exemplos/monografia-exemplo.pdf') },
   { id: 'd4', tccId: 't2', nome: 'Projeto de pesquisa', versao: 2, tipo: 'Projeto', enviadoEm: addDays(-22), status: 'aprovado', arquivoUrl: publico('exemplos/capitulo-exemplo.pdf') },
-  { id: 'd5', tccId: 't2', nome: 'Revisão bibliográfica', versao: 1, tipo: 'Capítulo', enviadoEm: addDays(-1), status: 'em_analise', arquivoUrl: publico('exemplos/capitulo-exemplo.pdf') },
+  { id: 'd5', tccId: 't2', nome: 'Revisão bibliográfica', versao: 1, tipo: 'Capítulo', enviadoEm: addDays(-1), status: 'pendente_revisao', arquivoUrl: publico('exemplos/capitulo-exemplo.pdf') },
   { id: 'd6', tccId: 't3', nome: 'Projeto de pesquisa', versao: 1, tipo: 'Projeto', enviadoEm: addDays(-10), status: 'correcao', arquivoUrl: publico('exemplos/capitulo-exemplo.pdf') },
   { id: 'd7', tccId: 't4', nome: 'Relatório parcial', versao: 1, tipo: 'Relatório', enviadoEm: addDays(-9), status: 'aprovado', arquivoUrl: publico('exemplos/capitulo-exemplo.pdf') },
-  { id: 'd8', tccId: 't5', nome: 'Projeto do TCC 1', versao: 1, tipo: 'Projeto', enviadoEm: addDays(-3), status: 'em_analise', arquivoUrl: publico('exemplos/capitulo-exemplo.pdf') },
-  { id: 'd9', tccId: 't6', nome: 'Monografia', versao: 4, tipo: 'Monografia', enviadoEm: addDays(-1), status: 'em_analise', arquivoUrl: publico('exemplos/monografia-exemplo.pdf') },
+  { id: 'd8', tccId: 't5', nome: 'Projeto do TCC 1', versao: 1, tipo: 'Projeto', enviadoEm: addDays(-3), status: 'pendente_revisao', arquivoUrl: publico('exemplos/capitulo-exemplo.pdf') },
+  { id: 'd9', tccId: 't6', nome: 'Monografia', versao: 4, tipo: 'Monografia', enviadoEm: addDays(-1), status: 'pendente_revisao', arquivoUrl: publico('exemplos/monografia-exemplo.pdf') },
 ]
 
 export interface FeedbackRecord {
@@ -132,7 +132,7 @@ export const feedbacks: FeedbackRecord[] = [
   { id: 'f2', tccId: 't1', documentoId: 'd2', autorId: 'o1', data: addDays(-13), texto: 'Reforçar a descrição da metodologia: critérios de seleção dos portais e instrumento de avaliação.', tipo: 'correcao', resolvido: false },
   { id: 'f3', tccId: 't2', documentoId: 'd4', autorId: 'o1', data: addDays(-20), texto: 'Projeto aprovado. Ampliar a lista de bases de dados na revisão.', tipo: 'comentario', resolvido: true },
   { id: 'f4', tccId: 't3', documentoId: 'd6', autorId: 'o1', data: addDays(-8), texto: 'Objetivos específicos muito amplos. Reescrever e alinhar com o cronograma.', tipo: 'correcao', resolvido: false },
-  { id: 'f5', tccId: 't6', documentoId: 'd9', autorId: 'o2', data: addDays(-12), texto: 'Corrigir referências fora do padrão ABNT.', tipo: 'correcao', resolvido: true },
+  { id: 'f5', tccId: 't6', autorId: 'o2', data: addDays(-12), texto: 'Corrigir referências fora do padrão ABNT.', tipo: 'correcao', resolvido: true },
 ]
 
 export interface BancaRecord {

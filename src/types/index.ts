@@ -12,7 +12,8 @@ export interface User {
 export type Fase = 'TCC1' | 'TCC2'
 export type TccStatus = 'em_andamento' | 'atencao' | 'atrasado' | 'concluido'
 export type AtividadeStatus = 'pendente' | 'em_andamento' | 'concluida' | 'atrasada'
-export type DocumentoStatus = 'enviado' | 'em_analise' | 'correcao' | 'aprovado'
+/** Pendente de revisão (aguarda o orientador), correção solicitada ou aprovada. Cada versão enviada começa pendente. */
+export type DocumentoStatus = 'pendente_revisao' | 'correcao' | 'aprovado'
 export type BancaSituacao = 'a_definir' | 'proposta' | 'agendada' | 'realizada'
 export type FeedbackTipo = 'comentario' | 'correcao'
 
@@ -71,6 +72,8 @@ export interface Documento {
   anotacoes?: { total: number; abertas: number }
   /** Correções gerais pedidas pelo orientador sobre este documento. */
   correcoesPendentes?: number
+  /** Não existe versão mais nova do mesmo documento: só ela pode ser aprovada. */
+  ultimaVersao?: boolean
   /** Endereço do PDF para visualização (quando o arquivo enviado é um PDF). */
   arquivoUrl?: string
 }
@@ -119,6 +122,11 @@ export interface NovoDocumento {
   arquivo: string
   /** Endereço do PDF enviado (no protótipo, um endereço local do navegador). */
   arquivoUrl?: string
+}
+
+export interface AtualizacaoFeedback {
+  texto: string
+  tipo: FeedbackTipo
 }
 
 export interface NovoFeedback {

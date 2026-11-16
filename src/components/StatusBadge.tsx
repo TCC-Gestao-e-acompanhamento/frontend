@@ -15,10 +15,9 @@ const MAPS = {
     atrasada: ['danger', 'Atrasada'],
   } satisfies Record<AtividadeStatus, [Tone, string]>,
   documento: {
-    enviado: ['neutral', 'Enviado'],
-    em_analise: ['brand', 'Em análise'],
+    pendente_revisao: ['brand', 'Pendente revisão'],
     correcao: ['warning', 'Correção solicitada'],
-    aprovado: ['success', 'Aprovado'],
+    aprovado: ['success', 'Aprovada'],
   } satisfies Record<DocumentoStatus, [Tone, string]>,
   solicitacao: {
     pendente: ['warning', 'Pendente'],

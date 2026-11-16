@@ -10,11 +10,13 @@ import {
   DataBoundary,
   EmptyState,
   LoadingState,
+  Modal,
   PageHeader,
   SectionCard,
 } from "../../design-system";
 import { useAsync } from "../../hooks/useAsync";
 import {
+  aprovarDocumento,
   createAnotacao,
   createAnotacaoPdf,
   deleteAnotacao,
@@ -52,6 +54,26 @@ export default function DocumentoPage() {
   }, [user.id, id]);
   const [resolvendo, setResolvendo] = useState<string>();
   const [erroGeral, setErroGeral] = useState<string>();
+  const [editandoId, setEditandoId] = useState<string>();
+  const [aprovando, setAprovando] = useState(false);
+  const [aprovandoEnvio, setAprovandoEnvio] = useState(false);
+  const [erroAprovar, setErroAprovar] = useState<string>();
+
+  const aprovar = async () => {
+    setAprovandoEnvio(true);
+    setErroAprovar(undefined);
+    try {
+      await aprovarDocumento(user, id);
+      setAprovando(false);
+      reload();
+    } catch (e) {
+      setErroAprovar(
+        e instanceof Error ? e.message : "Não foi possível aprovar a versão.",
+      );
+    } finally {
+      setAprovandoEnvio(false);
+    }
+  };
 
   const resolverGeral = async (fid: string) => {
     setResolvendo(fid);
@@ -86,7 +108,25 @@ export default function DocumentoPage() {
               <PageHeader
                 title={`${d.nome}, versão ${d.versao}`}
                 description={`${papel === "orientador" ? `${d.alunoNome} · ` : ""}${d.tipo} · enviado em ${d.enviadoEm.split("-").reverse().join("/")}`}
-                actions={<StatusBadge kind="documento" value={d.status} />}
+                actions={
+                  <div className="flex flex-wrap items-center gap-3">
+                    <StatusBadge kind="documento" value={d.status} />
+                    {papel === "orientador" &&
+                      d.status !== "aprovado" &&
+                      d.ultimaVersao && (
+                        <Button
+                          variant="success"
+                          size="sm"
+                          onClick={() => {
+                            setErroAprovar(undefined);
+                            setAprovando(true);
+                          }}
+                        >
+                          Aprovar versão
+                        </Button>
+                      )}
+                  </div>
+                }
               />
 
               {(gerais.length > 0 || papel === "orientador") && (
@@ -102,30 +142,55 @@ export default function DocumentoPage() {
                       {erroGeral}
                     </p>
                   )}
-                  {papel === "orientador" && (
+                  {/* um único retorno geral por versão: criado uma vez e depois editado */}
+                  {papel === "orientador" &&
+                    gerais.length === 0 &&
+                    d.status !== "aprovado" && (
                     <FeedbackForm
                       tccId={d.tccId}
                       documentoId={d.id}
                       onSaved={reload}
                     />
                   )}
-                  <FeedbackList
-                    items={gerais}
-                    acao={(f) =>
-                      papel === "aluno" &&
-                      f.tipo === "correcao" &&
-                      !f.resolvido ? (
-                        <Button
-                          size="sm"
-                          variant="success"
-                          loading={resolvendo === f.id}
-                          onClick={() => resolverGeral(f.id)}
-                        >
-                          Marcar como resolvida
-                        </Button>
-                      ) : null
-                    }
-                  />
+                  {gerais.find((f) => f.id === editandoId) ? (
+                    <FeedbackForm
+                      tccId={d.tccId}
+                      documentoId={d.id}
+                      editando={gerais.find((f) => f.id === editandoId)}
+                      onSaved={() => {
+                        setEditandoId(undefined);
+                        reload();
+                      }}
+                      onCancel={() => setEditandoId(undefined)}
+                    />
+                  ) : (
+                    <FeedbackList
+                      items={gerais}
+                      acao={(f) =>
+                        papel === "aluno" &&
+                        f.tipo === "correcao" &&
+                        !f.resolvido ? (
+                          <Button
+                            size="sm"
+                            variant="success"
+                            loading={resolvendo === f.id}
+                            onClick={() => resolverGeral(f.id)}
+                          >
+                            Marcar como resolvida
+                          </Button>
+                        ) : papel === "orientador" &&
+                          d.status !== "aprovado" ? (
+                          <Button
+                            size="sm"
+                            variant="neutral"
+                            onClick={() => setEditandoId(f.id)}
+                          >
+                            Editar
+                          </Button>
+                        ) : null
+                      }
+                    />
+                  )}
                 </SectionCard>
               )}
               {d.arquivoUrl ? (
@@ -188,6 +253,52 @@ export default function DocumentoPage() {
                   }}
                 />
               )}
+              <Modal
+                open={aprovando}
+                title={`Aprovar a versão ${d.versao}?`}
+                bloqueado={aprovandoEnvio}
+                onClose={() => setAprovando(false)}
+              >
+                <div className="space-y-4 text-sm">
+                  <p>
+                    {d.nome}, versão {d.versao}, ficará como <strong>Aprovada</strong>
+                    {papel === "orientador" ? ` para ${d.alunoNome}` : ""}. Neste protótipo, a aprovação não pode ser desfeita.
+                  </p>
+                  {(d.correcoesPendentes ?? 0) > 0 && (
+                    <p className="rounded-lg bg-warning/10 p-3 text-warning">
+                      Ainda há{" "}
+                      {d.correcoesPendentes === 1
+                        ? "1 correção pendente"
+                        : `${d.correcoesPendentes} correções pendentes`}{" "}
+                      nesta versão.
+                    </p>
+                  )}
+                  {erroAprovar && (
+                    <p
+                      role="alert"
+                      className="rounded-lg border border-danger/30 bg-danger/10 p-3 text-danger"
+                    >
+                      {erroAprovar}
+                    </p>
+                  )}
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      variant="success"
+                      loading={aprovandoEnvio}
+                      onClick={aprovar}
+                    >
+                      Aprovar versão
+                    </Button>
+                    <Button
+                      variant="neutral"
+                      disabled={aprovandoEnvio}
+                      onClick={() => setAprovando(false)}
+                    >
+                      Cancelar
+                    </Button>
+                  </div>
+                </div>
+              </Modal>
             </div>
           );
         }}
