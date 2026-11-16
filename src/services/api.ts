@@ -7,36 +7,49 @@
  */
 import {
   addDays,
+  anotacoes,
   areas,
   atividades,
   bancas,
+  conteudoDoDocumento,
   cursos,
   documentos,
   feedbacks,
   inscricoes,
+  orientacoes,
   perfisProfessores,
   periodoInscricao,
   prazosInstitucionais,
   solicitacoes,
   tccs,
   users,
+  type AnotacaoRecord,
+  type DocumentoRecord,
   type InscricaoRecord,
   type PerfilProfessorRecord,
   type SolicitacaoRecord,
 } from '../mocks/data'
-import { daysUntil } from '../lib/format'
+import { daysUntil, proximosSemestres } from '../lib/format'
 import { emailUnbValido } from '../lib/validators'
 import type {
   AreaOrientacao,
+  Anotacao,
   Atividade,
   Banca,
   Curso,
   EventoCalendario,
+  EventoTempo,
   Inscricao,
+  NovaAnotacao,
+  NovaAnotacaoPdf,
+  NovaBanca,
   NovaInscricao,
+  NovaOrientacao,
+  Orientacao,
   PeriodoInput,
   PeriodoInscricao,
   Documento,
+  DocumentoConteudo,
   Etapa,
   Feedback,
   NovaSolicitacao,
@@ -167,7 +180,7 @@ export function listEventosPublicos(): Promise<EventoCalendario[]> {
     fase: p.fase,
   }))
   const defesas: EventoCalendario[] = bancas
-    .filter((b) => b.situacao !== 'a_definir' && b.data)
+    .filter((b) => (b.situacao === 'agendada' || b.situacao === 'realizada') && b.data)
     .map(toBanca)
     .map((b) => ({
       id: `def-${b.id}`,
@@ -201,7 +214,7 @@ function toBanca(b: (typeof bancas)[number]): Banca {
 /** Somente defesas com data definida (agendadas ou realizadas) são públicas. */
 export function listBancasPublicas(): Promise<Banca[]> {
   const data = bancas
-    .filter((b) => b.situacao !== 'a_definir')
+    .filter((b) => b.situacao === 'agendada' || b.situacao === 'realizada')
     .map(toBanca)
     .sort((a, b) => (a.data ?? '').localeCompare(b.data ?? ''))
   return settle(data, [])
@@ -231,12 +244,19 @@ export function listAtividades(user: User, tccId?: string): Promise<Atividade[]>
   return settle(data, [])
 }
 
+function docView(d: DocumentoRecord): Documento {
+  const doDoc = anotacoes.filter((a) => a.documentoId === d.id)
+  const correcoesPendentes =
+    feedbacks.filter((f) => f.documentoId === d.id && f.tipo === 'correcao' && !f.resolvido).length + doDoc.filter((a) => a.tipo === 'correcao' && !a.resolvida).length
+  return { ...d, alunoNome: aluno(d.tccId), anotacoes: { total: doDoc.length, abertas: doDoc.filter((a) => !a.resolvida).length }, correcoesPendentes }
+}
+
 export function listDocumentos(user: User, tccId?: string): Promise<Documento[]> {
   const ids = new Set(scope(user).map((t) => t.id))
   if (tccId) assertAccess(user, tccId)
   const data = documentos
     .filter((d) => ids.has(d.tccId) && (!tccId || d.tccId === tccId))
-    .map((d) => ({ ...d, alunoNome: aluno(d.tccId) }))
+    .map((d) => docView(d))
     .sort((a, b) => b.enviadoEm.localeCompare(a.enviadoEm))
   return settle(data, [])
 }
@@ -244,6 +264,16 @@ export function listDocumentos(user: User, tccId?: string): Promise<Documento[]>
 export async function sendDocumento(user: User, input: NovoDocumento): Promise<Documento> {
   if (user.role !== 'aluno') throw new ApiError('Somente o aluno envia documentos nesta versão', 403)
   assertAccess(user, input.tccId)
+  if (input.arquivoUrl) {
+    // No servidor real a URL do arquivo é sempre gerada por ele; aqui só vale o endereço local criado pelo navegador.
+    let origemOk = false
+    try {
+      origemOk = input.arquivoUrl.startsWith('blob:') && new URL(input.arquivoUrl).origin === window.location.origin
+    } catch {
+      origemOk = false
+    }
+    if (!origemOk || !input.arquivo.toLowerCase().endsWith('.pdf')) throw new ApiError('Arquivo inválido. Envie um PDF.', 422)
+  }
   const versao = documentos.filter((d) => d.tccId === input.tccId && d.nome === input.nome).length + 1
   const rec = {
     id: `d${Date.now()}`,
@@ -253,6 +283,7 @@ export async function sendDocumento(user: User, input: NovoDocumento): Promise<D
     tipo: input.tipo,
     enviadoEm: addDays(0),
     status: 'enviado' as const,
+    arquivoUrl: input.arquivoUrl,
   }
   documentos.push(rec)
   await new Promise((r) => setTimeout(r, 500))
@@ -267,6 +298,7 @@ export function listFeedbacks(user: User, tccId?: string): Promise<Feedback[]> {
     .map((f) => ({
       id: f.id,
       tccId: f.tccId,
+      documentoId: f.documentoId,
       documentoNome: f.documentoId
         ? (() => {
             const d = documentos.find((x) => x.id === f.documentoId)
@@ -287,9 +319,14 @@ export function listFeedbacks(user: User, tccId?: string): Promise<Feedback[]> {
 export async function addFeedback(user: User, input: NovoFeedback): Promise<void> {
   if (user.role !== 'orientador') throw new ApiError('Somente o orientador registra feedbacks', 403)
   assertAccess(user, input.tccId)
+  if (input.documentoId && documentos.find((d) => d.id === input.documentoId)?.tccId !== input.tccId) {
+    throw new ApiError('Documento não encontrado neste TCC', 404)
+  }
+  if (input.texto.trim().length < 5) throw new ApiError('Escreva ao menos 5 caracteres.', 422)
   feedbacks.push({
-    id: `f${Date.now()}`,
+    id: `f${Date.now()}${Math.random().toString(36).slice(2, 6)}`,
     tccId: input.tccId,
+    documentoId: input.documentoId,
     autorId: user.id,
     data: addDays(0),
     texto: input.texto,
@@ -401,6 +438,7 @@ function toSolicitacao(r: SolicitacaoRecord): Solicitacao {
     alunoCurso: cursos.find((c) => c.id === aluno.cursoId)?.nome ?? 'Curso não informado',
     titulo: r.titulo,
     area: r.area,
+    semestre: r.semestre,
     descricao: r.descricao,
     mensagem: r.mensagem,
     status: r.status,
@@ -438,6 +476,7 @@ export async function createSolicitacao(user: User, input: NovaSolicitacao): Pro
   if (user.role !== 'aluno') throw new ApiError('Apenas alunos autenticados enviam solicitações', 403)
   const prof = perfisProfessores.find((p) => p.id === input.professorId)
   if (!prof) throw new ApiError('Professor não encontrado', 404)
+  if (!proximosSemestres().includes(input.semestre)) throw new ApiError('Escolha o semestre atual ou um dos próximos (ex.: 2027/1).', 422)
   if (!prof.aceitandoSolicitacoes) throw new ApiError('Este professor não está recebendo novas solicitações no momento.', 409)
   if (solicitacoes.some((s) => s.alunoId === user.id && s.professorId === prof.id && s.status === 'pendente')) {
     throw new ApiError('Você já tem uma solicitação pendente para este professor.', 409)
@@ -448,6 +487,7 @@ export async function createSolicitacao(user: User, input: NovaSolicitacao): Pro
     alunoId: user.id,
     titulo: input.titulo.trim(),
     area: input.area,
+    semestre: input.semestre,
     descricao: input.descricao.trim(),
     mensagem: input.mensagem?.trim() || undefined,
     status: 'pendente',
@@ -624,4 +664,321 @@ export async function marcarCiente(user: User, id: string): Promise<void> {
 export function contarInscricoesNovas(user: User): Promise<number> {
   if (user.role !== 'orientador') return Promise.resolve(0)
   return Promise.resolve(ativasDoSemestre().filter((i) => i.orientadorId === user.id && !i.cienteEm).length)
+}
+
+/* --------------- Registro de orientações, linha do tempo e comentários em documentos --------------- */
+
+const hojeIso = () => addDays(0)
+
+export function listOrientacoes(user: User, tccId: string): Promise<Orientacao[]> {
+  const rec = assertAccess(user, tccId)
+  const prof = userById(rec.orientadorId).nome
+  const data = orientacoes
+    .filter((o) => o.tccId === tccId)
+    .map((o) => ({ ...o, orientadorNome: prof }))
+    .sort((a, b) => b.data.localeCompare(a.data))
+  return settle(data, [])
+}
+
+/** Somente o orientador do TCC registra orientações/reuniões já realizadas. */
+export async function createOrientacao(user: User, input: NovaOrientacao): Promise<Orientacao> {
+  const rec = assertAccess(user, input.tccId)
+  if (user.role !== 'orientador') throw new ApiError('Somente o orientador registra orientações', 403)
+  if (!input.data || input.data > hojeIso()) throw new ApiError('Informe a data de uma reunião já realizada (hoje ou antes).', 422)
+  if (input.resumo.trim().length < 10) throw new ApiError('Descreva o que foi tratado (pelo menos 10 caracteres).', 422)
+  if (input.proximoEncontro && input.proximoEncontro < input.data) throw new ApiError('O próximo encontro não pode ser antes desta reunião.', 422)
+  const novo = {
+    id: `or${Date.now()}`,
+    tccId: input.tccId,
+    data: input.data,
+    formato: input.formato,
+    resumo: input.resumo.trim(),
+    combinados: input.combinados?.trim() || undefined,
+    proximoEncontro: input.proximoEncontro || undefined,
+  }
+  orientacoes.push(novo)
+  await wait()
+  return { ...novo, orientadorNome: userById(rec.orientadorId).nome }
+}
+
+function toAnotacao(r: AnotacaoRecord): Anotacao {
+  const doc = documentos.find((d) => d.id === r.documentoId) as DocumentoRecord
+  const autor = userById(r.autorId)
+  return {
+    id: r.id,
+    documentoId: r.documentoId,
+    paragrafo: r.paragrafo,
+    inicio: r.inicio,
+    fim: r.fim,
+    trecho: r.posicaoPdf ? (r.trecho ?? 'Área marcada na página') : conteudoDoDocumento(doc.tipo)[r.paragrafo].slice(r.inicio, r.fim),
+    autorNome: autor.nome,
+    autorRole: autor.role,
+    tipo: r.tipo,
+    texto: r.texto,
+    criadaEm: r.criadaEm,
+    resolvida: r.resolvida,
+    respostas: r.respostas.map((x) => ({ id: x.id, autorNome: userById(x.autorId).nome, autorRole: userById(x.autorId).role, texto: x.texto, data: x.data })),
+    posicaoPdf: r.posicaoPdf,
+    imagem: r.imagem,
+  }
+}
+
+function documentoAcessivel(user: User, documentoId: string): DocumentoRecord {
+  const doc = documentos.find((d) => d.id === documentoId)
+  if (!doc) throw new ApiError('Documento não encontrado', 404)
+  assertAccess(user, doc.tccId)
+  return doc
+}
+
+export function listLinhaDoTempo(user: User, tccId: string): Promise<EventoTempo[]> {
+  assertAccess(user, tccId)
+  const ev: EventoTempo[] = []
+  for (const o of orientacoes.filter((x) => x.tccId === tccId)) {
+    ev.push({
+      id: o.id,
+      tccId,
+      data: o.data,
+      tipo: 'reuniao',
+      titulo: `Reunião ${o.formato === 'online' ? 'online' : 'presencial'}`,
+      detalhe: o.combinados ? `${o.resumo} Combinados: ${o.combinados}` : o.resumo,
+    })
+  }
+  for (const d of documentos.filter((x) => x.tccId === tccId)) {
+    ev.push({ id: `doc-${d.id}`, tccId, data: d.enviadoEm, tipo: 'documento', titulo: `${d.nome}, versão ${d.versao}, enviado`, detalhe: d.tipo, documentoId: d.id })
+  }
+  for (const f of feedbacks.filter((x) => x.tccId === tccId)) {
+    ev.push({
+      id: `fb-${f.id}`,
+      tccId,
+      data: f.data,
+      tipo: 'feedback',
+      titulo: f.tipo === 'correcao' ? 'Correção solicitada' : 'Comentário do orientador',
+      detalhe: f.texto,
+      documentoId: f.documentoId,
+    })
+  }
+  for (const a of anotacoes) {
+    const doc = documentos.find((d) => d.id === a.documentoId)
+    if (!doc || doc.tccId !== tccId) continue
+    const t = toAnotacao(a)
+    ev.push({ id: `an-${a.id}`, tccId, data: a.criadaEm, tipo: 'comentario', titulo: `Comentário em “${t.trecho}”`, detalhe: `${doc.nome}, versão ${doc.versao}: ${a.texto}`, documentoId: a.documentoId })
+  }
+  const ordem: Record<EventoTempo['tipo'], number> = { reuniao: 0, documento: 1, feedback: 2, comentario: 3 }
+  ev.sort((a, b) => b.data.localeCompare(a.data) || ordem[a.tipo] - ordem[b.tipo])
+  return settle(ev, [])
+}
+
+export function getDocumentoConteudo(user: User, documentoId: string): Promise<DocumentoConteudo> {
+  const doc = documentoAcessivel(user, documentoId)
+  return settle({ documento: docView(doc), paragrafos: conteudoDoDocumento(doc.tipo) }, { documento: docView(doc), paragrafos: [] })
+}
+
+export function listAnotacoes(user: User, documentoId: string): Promise<Anotacao[]> {
+  documentoAcessivel(user, documentoId)
+  const data = anotacoes
+    .filter((a) => a.documentoId === documentoId)
+    .map(toAnotacao)
+    .sort(
+      (a, b) =>
+        (a.posicaoPdf?.pageNumber ?? 0) - (b.posicaoPdf?.pageNumber ?? 0) ||
+        (a.posicaoPdf?.boundingRect.y1 ?? 0) - (b.posicaoPdf?.boundingRect.y1 ?? 0) ||
+        a.paragrafo - b.paragrafo ||
+        a.inicio - b.inicio,
+    )
+  return settle(data, [])
+}
+
+/** Somente o orientador do TCC comenta trechos do documento do orientando. */
+export async function createAnotacao(user: User, input: NovaAnotacao): Promise<Anotacao> {
+  const doc = documentoAcessivel(user, input.documentoId)
+  if (user.role !== 'orientador') throw new ApiError('Somente o orientador comenta trechos do documento', 403)
+  if (doc.arquivoUrl) throw new ApiError('Este documento é um PDF: comente o trecho diretamente no PDF.', 409)
+  const paragrafos = conteudoDoDocumento(doc.tipo)
+  const texto = paragrafos[input.paragrafo]
+  if (texto === undefined || !(input.inicio >= 0 && input.fim > input.inicio && input.fim <= texto.length)) {
+    throw new ApiError('Trecho inválido. Selecione o texto novamente.', 422)
+  }
+  if (input.texto.trim().length < 3) throw new ApiError('Escreva o comentário.', 422)
+  const sobrepoe = anotacoes.some((a) => a.documentoId === doc.id && a.paragrafo === input.paragrafo && input.inicio < a.fim && input.fim > a.inicio)
+  if (sobrepoe) throw new ApiError('Este trecho já tem um comentário. Escolha outro trecho ou responda ao comentário existente.', 409)
+  const rec: AnotacaoRecord = {
+    id: `an${Date.now()}${Math.random().toString(36).slice(2, 6)}`,
+    documentoId: doc.id,
+    paragrafo: input.paragrafo,
+    inicio: input.inicio,
+    fim: input.fim,
+    autorId: user.id,
+    tipo: input.tipo,
+    texto: input.texto.trim(),
+    criadaEm: hojeIso(),
+    resolvida: false,
+    respostas: [],
+  }
+  anotacoes.push(rec)
+  await wait(300)
+  return toAnotacao(rec)
+}
+
+/** Comentário em PDF: o orientador do TCC marca um trecho (texto) ou uma área (figura) da página. */
+export async function createAnotacaoPdf(user: User, input: NovaAnotacaoPdf): Promise<Anotacao> {
+  const doc = documentoAcessivel(user, input.documentoId)
+  if (user.role !== 'orientador') throw new ApiError('Somente o orientador comenta o documento', 403)
+  if (!doc.arquivoUrl) throw new ApiError('Este documento não tem PDF para comentar.', 409)
+  const p = input.posicao
+  // Coordenadas calculadas pelo navegador podem sair levemente negativas na borda da página; largura e altura não.
+  const retanguloOk = (r: unknown): boolean => {
+    if (!r || typeof r !== 'object') return false
+    const v = r as Record<string, unknown>
+    const coordenadas = ['x1', 'y1', 'x2', 'y2'].every((k) => typeof v[k] === 'number' && Number.isFinite(v[k]) && Math.abs(v[k] as number) <= 100_000)
+    const tamanho = ['width', 'height'].every((k) => typeof v[k] === 'number' && Number.isFinite(v[k]) && (v[k] as number) >= 0 && (v[k] as number) <= 100_000)
+    return coordenadas && tamanho
+  }
+  if (
+    !p ||
+    !Number.isInteger(p.pageNumber) ||
+    p.pageNumber < 1 ||
+    !Array.isArray(p.rects) ||
+    p.rects.length === 0 ||
+    p.rects.length > 200 ||
+    !retanguloOk(p.boundingRect) ||
+    !p.rects.every(retanguloOk)
+  ) {
+    throw new ApiError('Seleção inválida. Marque o trecho novamente.', 422)
+  }
+  if (input.imagem && (!/^data:image\/(png|jpeg);base64,/.test(input.imagem) || input.imagem.length > 700_000)) {
+    throw new ApiError('Imagem da área inválida ou grande demais.', 422)
+  }
+  if ((input.trecho?.length ?? 0) > 5000) throw new ApiError('O trecho selecionado é grande demais. Selecione menos texto.', 422)
+  if (input.texto.length > 2000) throw new ApiError('O comentário é longo demais (máximo de 2000 caracteres).', 422)
+  if (input.texto.trim().length < 3) throw new ApiError('Escreva o comentário.', 422)
+  const rec: AnotacaoRecord = {
+    id: `an${Date.now()}${Math.random().toString(36).slice(2, 6)}`,
+    documentoId: doc.id,
+    paragrafo: -1,
+    inicio: 0,
+    fim: 0,
+    autorId: user.id,
+    tipo: input.tipo,
+    texto: input.texto.trim(),
+    criadaEm: hojeIso(),
+    resolvida: false,
+    respostas: [],
+    posicaoPdf: p,
+    trecho: input.trecho?.trim() || undefined,
+    imagem: input.imagem,
+  }
+  anotacoes.push(rec)
+  await wait(300)
+  return toAnotacao(rec)
+}
+
+function anotacaoAcessivel(user: User, id: string): AnotacaoRecord {
+  const rec = anotacoes.find((a) => a.id === id)
+  if (!rec) throw new ApiError('Comentário não encontrado', 404)
+  documentoAcessivel(user, rec.documentoId)
+  return rec
+}
+
+export async function responderAnotacao(user: User, id: string, texto: string): Promise<void> {
+  const rec = anotacaoAcessivel(user, id)
+  if (user.role !== 'aluno' && user.role !== 'orientador') throw new ApiError('Perfil sem permissão para responder comentários', 403)
+  if (texto.trim().length < 2) throw new ApiError('Escreva a resposta.', 422)
+  // o orientador escreveu o comentário: só responde depois que o aluno respondeu
+  if (user.role === 'orientador' && rec.autorId === user.id && !rec.respostas.some((r) => userById(r.autorId).role === 'aluno')) {
+    throw new ApiError('Aguarde a resposta do aluno para responder.', 409)
+  }
+  rec.respostas.push({ id: `ar${Date.now()}`, autorId: user.id, texto: texto.trim(), data: hojeIso() })
+  await wait(250)
+}
+
+/** Só o orientador que escreveu o comentário o apaga (as respostas vão junto). */
+export async function deleteAnotacao(user: User, id: string): Promise<void> {
+  const rec = anotacaoAcessivel(user, id)
+  if (user.role !== 'orientador' || rec.autorId !== user.id) throw new ApiError('Somente quem escreveu o comentário pode apagá-lo', 403)
+  anotacoes.splice(anotacoes.indexOf(rec), 1)
+  await wait(250)
+}
+
+/** Aluno marca como resolvida; o orientador pode reabrir. */
+export async function setAnotacaoResolvida(user: User, id: string, resolvida: boolean): Promise<void> {
+  const rec = anotacaoAcessivel(user, id)
+  if (resolvida && user.role !== 'aluno') throw new ApiError('Somente o aluno marca o comentário como resolvido', 403)
+  if (!resolvida && user.role !== 'orientador') throw new ApiError('Somente o orientador reabre um comentário', 403)
+  if (rec.resolvida === resolvida) throw new ApiError(resolvida ? 'Este comentário já está resolvido.' : 'Este comentário já está aberto.', 409)
+  rec.resolvida = resolvida
+  await wait(250)
+}
+
+/* ------------------------- Banca proposta pelo aluno ------------------------- */
+
+const PAPEIS_BANCA = ['Orientador (presidente)', 'Orientadora (presidente)', 'Examinador', 'Examinadora', 'Suplente']
+
+function validarBanca(input: NovaBanca, dataAtual?: string): void {
+  if ((input.data != null && typeof input.data !== 'string') || (input.local != null && typeof input.local !== 'string')) {
+    throw new ApiError('Data ou local inválidos.', 422)
+  }
+  if (input.data && !/^\d{4}-\d{2}-\d{2}$/.test(input.data)) throw new ApiError('Data inválida.', 422)
+  // uma proposta antiga mantém a data que já tinha; só uma data nova precisa ser de hoje em diante
+  if (input.data && input.data !== dataAtual && input.data < addDays(0)) throw new ApiError('A data da banca não pode ser anterior a hoje.', 422)
+  if ((input.local?.length ?? 0) > 200) throw new ApiError('O local pode ter no máximo 200 caracteres.', 422)
+  if (!Array.isArray(input.membros) || input.membros.length < 1 || input.membros.length > 6) {
+    throw new ApiError('Informe de 1 a 6 membros da banca.', 422)
+  }
+  for (const m of input.membros) {
+    if (!m || typeof m !== 'object' || typeof m.nome !== 'string' || typeof m.instituicao !== 'string' || typeof m.papel !== 'string') throw new ApiError('Dados de membro inválidos.', 422)
+    if (m.nome.trim().length < 3) throw new ApiError('Informe o nome de cada membro da banca.', 422)
+    if (m.instituicao.trim().length < 2) throw new ApiError('Informe a instituição de cada membro da banca.', 422)
+    if (!PAPEIS_BANCA.includes(m.papel)) throw new ApiError('Papel de membro inválido.', 422)
+  }
+}
+
+const membrosLimpos = (input: NovaBanca) => input.membros.map((m) => ({ nome: m.nome.trim(), papel: m.papel, instituicao: m.instituicao.trim() }))
+
+/** A banca do TCC do aluno (nula se ainda não há registro). */
+export function getMinhaBanca(user: User): Promise<Banca | null> {
+  if (user.role !== 'aluno') return Promise.reject(new ApiError('Apenas alunos propõem a própria banca', 403))
+  const tcc = scope(user)[0]
+  const rec = tcc ? bancas.find((b) => b.tccId === tcc.id) : undefined
+  return settle<Banca | null>(rec ? toBanca(rec) : null, null)
+}
+
+/** O aluno propõe a banca do próprio TCC. Fica como "proposta" até a coordenação confirmar (procedimento a confirmar). */
+export async function createBanca(user: User, input: NovaBanca): Promise<Banca> {
+  if (user.role !== 'aluno') throw new ApiError('Apenas alunos propõem a própria banca', 403)
+  assertAccess(user, input.tccId)
+  const existente = bancas.find((b) => b.tccId === input.tccId)
+  if (existente && existente.situacao !== 'a_definir') throw new ApiError('Este TCC já tem uma banca proposta ou confirmada.', 409)
+  validarBanca(input)
+  const dados = { situacao: 'proposta' as const, data: input.data || undefined, local: input.local?.trim() || undefined, membros: membrosLimpos(input) }
+  let rec = existente
+  if (rec) Object.assign(rec, dados)
+  else {
+    rec = { id: `b${Date.now()}`, tccId: input.tccId, ...dados }
+    bancas.push(rec)
+  }
+  await wait()
+  return toBanca(rec)
+}
+
+function minhaPropostaDeBanca(user: User, id: string) {
+  const rec = bancas.find((b) => b.id === id)
+  if (!rec) throw new ApiError('Banca não encontrada', 404)
+  if (user.role !== 'aluno' || !rec.tccId || !scope(user).some((t) => t.id === rec.tccId)) throw new ApiError('Você não tem permissão para alterar esta banca', 403)
+  if (rec.situacao !== 'proposta') throw new ApiError('Só uma proposta ainda não confirmada pode ser alterada. Procure a coordenação.', 409)
+  return rec
+}
+
+export async function updateBanca(user: User, id: string, input: Omit<NovaBanca, 'tccId'>): Promise<Banca> {
+  const rec = minhaPropostaDeBanca(user, id)
+  validarBanca({ ...input, tccId: rec.tccId as string }, rec.data)
+  Object.assign(rec, { data: input.data || undefined, local: input.local?.trim() || undefined, membros: membrosLimpos({ ...input, tccId: rec.tccId as string }) })
+  await wait()
+  return toBanca(rec)
+}
+
+/** Cancela a proposta: o TCC volta a ficar sem banca definida. */
+export async function cancelBanca(user: User, id: string): Promise<void> {
+  const rec = minhaPropostaDeBanca(user, id)
+  Object.assign(rec, { situacao: 'a_definir' as const, data: undefined, local: undefined, membros: [] })
+  await wait(300)
 }
