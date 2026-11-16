@@ -17,7 +17,7 @@ export function SolicitacaoRow({ solicitacao: s, perspective, to, actions }: Pro
       <div className="min-w-0 flex-1">
         <Link to={to} className="font-medium text-brand-700 hover:underline">{s.titulo}</Link>
         <p className="text-sm text-ink-muted">
-          {perspective === 'aluno' ? `Para ${s.professorNome}` : `${s.alunoNome} · ${s.alunoCurso}`} · {s.area} · enviada em {formatDate(s.enviadaEm)}
+          {perspective === 'aluno' ? `Para ${s.professorNome}` : `${s.alunoNome} · ${s.alunoCurso}`} · {s.area} · semestre {s.semestre} · enviada em {formatDate(s.enviadaEm)}
         </p>
       </div>
       <StatusBadge kind="solicitacao" value={s.status} />
