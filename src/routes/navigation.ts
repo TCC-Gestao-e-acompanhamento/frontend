@@ -24,11 +24,10 @@ export const NAV: Record<Role, NavItem[]> = {
     { to: '/aluno', label: 'Início', icon: 'home', end: true },
     { to: '/aluno/inscricao', label: 'Inscrição no TCC', icon: 'file' },
     { to: '/aluno/solicitacoes', label: 'Solicitações', icon: 'send' },
-    { to: '/orientadores', label: 'Buscar orientador', icon: 'search' },
     { to: '/aluno/etapas', label: 'Etapas do TCC', icon: 'steps' },
     { to: '/aluno/cronograma', label: 'Cronograma', icon: 'calendar' },
     { to: '/aluno/documentos', label: 'Documentos', icon: 'file' },
-    { to: '/aluno/feedbacks', label: 'Feedbacks', icon: 'message' },
+    { to: '/aluno/historico', label: 'Histórico', icon: 'clock' },
     { to: '/aluno/banca', label: 'Banca', icon: 'users' },
   ],
   orientador: [
