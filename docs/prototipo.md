@@ -320,3 +320,18 @@ ou recarregar a página reinicia esses dados, e então um documento enviado ante
   por senha ou danificado não recebe comentários: o modal avisa e oferece o original.
 - Limitação: os destaques são desenhados no conteúdo da página (não são destaques editáveis do leitor de PDF). A posição respeita
   área visível (CropBox) e giro da página; em página girada o número na margem não é desenhado (a nota e o destaque ficam). Hipótese 36: o orientador precisa do PDF com marcações para entregar ao aluno fora do sistema.
+
+## Status do documento e aprovação de versão
+
+- **Três status**: *Pendente revisão* (estado inicial de toda versão enviada), *Correção solicitada* e *Aprovada*. Saíram "Enviado" e "Em análise".
+- **Como muda** (hipótese 37, a confirmar com orientadores):
+  - o aluno envia uma versão: **Pendente revisão**;
+  - o orientador pede uma correção (comentário em trecho ou retorno geral do tipo "Solicitar correção"): **Correção solicitada**. Resolver as
+    correções não muda o status; o aluno envia uma nova versão, que volta a ser Pendente revisão;
+  - o orientador usa **Aprovar versão**: **Aprovada**. Só a versão mais recente do documento pode ser aprovada, a aprovação pede confirmação
+    (com aviso se houver correções pendentes) e, neste protótipo, não é desfeita. Versão aprovada não recebe novo retorno geral;
+    comentários em trechos continuam possíveis.
+- **Retorno geral sobre esta versão**: um só por versão. O orientador cria uma vez e depois **edita** (texto e tipo); mudar o tipo recalcula se há
+  correção pendente. Quem escreveu é o único que edita.
+- A aprovação do documento não é aprovação institucional do TCC (etapas, banca e nota continuam fora do protótipo).
+
