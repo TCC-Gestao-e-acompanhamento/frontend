@@ -4,7 +4,7 @@ import { ButtonLink } from '../design-system'
 import { cn } from '../lib/format'
 import { homePath } from '../routes/navigation'
 import { Brand } from './Brand'
-import { SimulateStates } from './SimulateStates'
+// import { SimulateStates } from './SimulateStates' // protótipo: desligado para tirar prints; descomente para voltar o seletor de estados
 
 const links = [
   { to: '/', label: 'Início', end: true },
@@ -56,7 +56,7 @@ export function PublicLayout() {
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-4 py-5 text-xs text-ink-muted lg:px-8">
           <p>Protótipo acadêmico · dados fictícios · Universidade de Brasília</p>
           <div className="w-full max-w-xs">
-            <SimulateStates />
+            {/* <SimulateStates /> */}
           </div>
         </div>
       </footer>
