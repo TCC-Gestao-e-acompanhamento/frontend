@@ -33,7 +33,7 @@ export function BancaCard({ banca }: { banca: Banca }) {
           )}
         </dl>
       ) : (
-        <p className="mt-3 text-sm text-ink-muted">Data e composição ainda não definidas.</p>
+        <p className="mt-3 text-sm text-ink-muted">{banca.membros.length ? 'Data ainda não definida.' : 'Data e composição ainda não definidas.'}</p>
       )}
 
       {banca.membros.length > 0 && (

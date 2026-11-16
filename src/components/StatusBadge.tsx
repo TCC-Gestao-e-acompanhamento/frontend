@@ -33,6 +33,7 @@ const MAPS = {
   } satisfies Record<PeriodoSituacao, [Tone, string]>,
   banca: {
     a_definir: ['neutral', 'A definir'],
+    proposta: ['warning', 'Proposta do aluno'],
     agendada: ['brand', 'Agendada'],
     realizada: ['success', 'Realizada'],
   } satisfies Record<BancaSituacao, [Tone, string]>,
