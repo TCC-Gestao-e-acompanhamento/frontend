@@ -1,8 +1,9 @@
-import { useEffect, useRef, useState } from 'react'
+import { useContext, useEffect, useRef, useState } from 'react'
 import { Link, useLocation, useParams } from 'react-router-dom'
 import { ResponderModal } from '../../components/ResponderModal'
 import { StatusBadge } from '../../components/StatusBadge'
 import { useCurrentUser } from '../../auth/useAuth'
+import { ShellContext } from '../../layouts/shellContext'
 import { Button, ButtonLink, DataBoundary, PageHeader, SectionCard } from '../../design-system'
 import { useAsync } from '../../hooks/useAsync'
 import { formatDate } from '../../lib/format'
@@ -17,6 +18,7 @@ export default function SolicitacaoDetailPage() {
 
 function SolicitacaoDetail({ id }: { id: string }) {
   const user = useCurrentUser()
+  const { refreshContador } = useContext(ShellContext)
   const location = useLocation()
   const enviada = (location.state as { enviada?: boolean } | null)?.enviada
   const { state, reload } = useAsync(() => getSolicitacao(user, id), [user.id, id])
@@ -133,7 +135,7 @@ function SolicitacaoDetail({ id }: { id: string }) {
                 <Button variant="secondary" onClick={() => setDecisao('recusada')}>Recusar</Button>
               </div>
             )}
-            <ResponderModal solicitacao={decisao ? s : null} decisao={decisao ?? 'aceita'} onClose={() => setDecisao(null)} onDone={(m) => { setAviso(m); reload() }} />
+            <ResponderModal solicitacao={decisao ? s : null} decisao={decisao ?? 'aceita'} onClose={() => setDecisao(null)} onDone={(m) => { setAviso(m); reload(); refreshContador() }} />
           </div>
         )}
       </DataBoundary>
