@@ -26,13 +26,13 @@ export function DocumentList({ items, showAluno = false, hrefFor }: Props) {
                 {d.nome} <span className="font-normal text-ink-muted">· versão {d.versao}</span>
               </p>
               <p className="text-sm text-ink-muted">
-                {d.tipo}
-                {showAluno && <> · {d.alunoNome}</>} · enviado em {formatDate(d.enviadoEm)}
+                {showAluno && <>{d.alunoNome} · </>}enviado em {formatDate(d.enviadoEm)}
                 {d.anotacoes && d.anotacoes.total > 0 && (
                   <> · {plural(d.anotacoes.total, 'comentário', 'comentários')}{d.anotacoes.abertas > 0 && `, ${plural(d.anotacoes.abertas, 'aberto', 'abertos')}`}</>
                 )}
                 {!!d.correcoesPendentes && <> · {plural(d.correcoesPendentes, 'correção pendente', 'correções pendentes')}</>}
               </p>
+              {d.observacao && <p className="mt-0.5 line-clamp-1 text-sm text-ink-muted italic">“{d.observacao}”</p>}
             </div>
             <StatusBadge kind="documento" value={d.status} />
           </>
