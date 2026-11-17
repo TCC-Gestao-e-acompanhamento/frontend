@@ -4,7 +4,7 @@ import { ActivityList } from '../../components/ActivityList'
 import { DocumentList } from '../../components/DocumentList'
 import { ResponderModal } from '../../components/ResponderModal'
 import { SolicitacaoRow } from '../../components/SolicitacaoRow'
-import { TccTable } from '../../components/TccTable'
+import { TccCards } from '../../components/TccCards'
 import { useCurrentUser } from '../../auth/useAuth'
 import { Button, ButtonLink, DataBoundary, PageHeader, SectionCard, StatCard, StatGroup } from '../../design-system'
 import { useAsync } from '../../hooks/useAsync'
@@ -91,7 +91,7 @@ export default function OrientadorDashboard() {
                 title="Situação dos trabalhos"
                 action={<ButtonLink to="/orientador/orientandos" variant="ghost" size="sm">Ver todos</ButtonLink>}
               >
-                {tccs.length ? <TccTable items={tccs} basePath="/orientador/orientandos" caption="Situação dos orientandos" /> : <p className="text-sm text-ink-muted">Nenhum orientando vinculado ainda.</p>}
+                {tccs.length ? <TccCards items={tccs} basePath="/orientador/orientandos" /> : <p className="text-sm text-ink-muted">Nenhum orientando vinculado ainda.</p>}
               </SectionCard>
 
               <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
