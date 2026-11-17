@@ -1,10 +1,12 @@
 import type { ReactNode } from 'react'
 import { Card, Icon } from '../design-system'
 import { formatDate, relativeDays } from '../lib/format'
+import { linkWebSeguro } from '../lib/links'
 import type { Banca } from '../types'
 import { StatusBadge } from './StatusBadge'
 
 export function BancaCard({ banca, acoes }: { banca: Banca; acoes?: ReactNode }) {
+  const linkSala = linkWebSeguro(banca.link)
   return (
     <Card className="p-5">
       <div className="flex flex-wrap items-start justify-between gap-2">
@@ -15,16 +17,18 @@ export function BancaCard({ banca, acoes }: { banca: Banca; acoes?: ReactNode })
         <StatusBadge kind="banca" value={banca.situacao} />
       </div>
 
-      {banca.data ? (
+      {banca.data || banca.local || linkSala ? (
         <dl className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
-          <div className="flex items-center gap-2">
-            <Icon name="calendar" size={16} className="text-ink-muted" />
-            <dt className="sr-only">Data</dt>
-            <dd>
-              {formatDate(banca.data)}
-              {banca.situacao === 'agendada' && <span className="text-ink-muted"> ({relativeDays(banca.data)})</span>}
-            </dd>
-          </div>
+          {banca.data && (
+            <div className="flex items-center gap-2">
+              <Icon name="calendar" size={16} className="text-ink-muted" />
+              <dt className="sr-only">Data</dt>
+              <dd>
+                {formatDate(banca.data)}
+                {banca.situacao === 'agendada' && <span className="text-ink-muted"> ({relativeDays(banca.data)})</span>}
+              </dd>
+            </div>
+          )}
           {banca.local && (
             <div className="flex items-center gap-2">
               <Icon name="pin" size={16} className="text-ink-muted" />
@@ -32,6 +36,19 @@ export function BancaCard({ banca, acoes }: { banca: Banca; acoes?: ReactNode })
               <dd>{banca.local}</dd>
             </div>
           )}
+          {linkSala && (
+            <div className="flex items-center gap-2 sm:col-span-2">
+              <Icon name="arrow" size={16} className="text-ink-muted" />
+              <dt className="sr-only">Sala virtual</dt>
+              <dd>
+                <a href={linkSala} target="_blank" rel="noopener noreferrer" className="font-medium text-brand-700 hover:underline">
+                  Entrar na sala virtual
+                  <span className="sr-only"> (abre em uma nova aba)</span>
+                </a>
+              </dd>
+            </div>
+          )}
+          {!banca.data && <p className="text-ink-muted sm:col-span-2">Data ainda não definida.</p>}
         </dl>
       ) : (
         <p className="mt-3 text-sm text-ink-muted">{banca.membros.length ? 'Data ainda não definida.' : 'Data e composição ainda não definidas.'}</p>

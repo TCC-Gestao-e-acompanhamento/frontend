@@ -381,3 +381,23 @@ ou recarregar a página reinicia esses dados, e então um documento enviado ante
 - **Calendário público**: só defesas (agendadas e realizadas) e o período de inscrições em vigor. Saíram os prazos institucionais de TCC 1 e TCC 2 (filtros
   e dados de exemplo). Ganhou seis defesas de exemplo (duas já realizadas e quatro nas próximas semanas), que também aparecem em Bancas.
 
+## Documentos sem nome livre: versões por tipo (aluno)
+
+- **O que mudou**: saiu o campo "Nome do documento". O documento é identificado pelo **tipo** (Projeto, Monografia, Capítulo ou Relatório) e as versões de um
+  tipo, no mesmo TCC, formam a sequência 1, 2, 3... O nome mostrado é o próprio tipo. Antes, um nome digitado diferente criava um documento paralelo e a versão anterior
+  não virava "Substituída".
+- **Formulário** ("Enviar nova versão"): o tipo vem sugerido pela etapa do aluno (Projeto no TCC 1, Monografia no TCC 2), o arquivo PDF e uma observação opcional
+  ("O que mudou nesta versão", até 500 caracteres). O botão mostra a versão que será criada ("Enviar versão 5 de Monografia") e o texto ao lado avisa qual versão passa a
+  Substituída.
+- **Lista**: agrupada por documento, com as versões do mais novo ao mais antigo; para o orientador, agrupada por aluno e documento. A observação aparece na lista e no topo da versão.
+- **API**: a versão é o maior número já usado para o par TCC + tipo, mais 1; substituir, aprovar "só a mais recente" e o aviso de versão substituída usam o mesmo par. Hipótese 42:
+  um tipo por vez por TCC, sem documentos paralelos do mesmo tipo (ex.: dois "Capítulo" ao mesmo tempo).
+  O tipo "Outro" foi retirado para não encadear arquivos sem relação como versões uns dos outros.
+
+## Link da sala virtual na banca
+
+- A banca ganhou o campo opcional **Link da sala virtual**, no formulário de propor (aluno) e de editar (aluno enquanto é proposta; coordenação sempre). Só aceita
+  endereços `http://` ou `https://` (até 300 caracteres, sem espaços e sem usuário e senha embutidos), validado na tela e na API simulada com a mesma função. Aparece como "Entrar na sala virtual" (abre em nova aba, com
+  `rel="noopener noreferrer"`) nos cartões de banca, inclusive na página pública. O texto "(link divulgado pela coordenação)" saiu: a coordenação não divulga o
+  link, quem cadastra a banca informa.
+

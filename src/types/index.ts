@@ -108,6 +108,8 @@ export interface Documento {
   versaoMaisRecente?: { id: string; versao: number; enviadoEm: string }
   /** Endereço do PDF para visualização (quando o arquivo enviado é um PDF). */
   arquivoUrl?: string
+  /** O que mudou nesta versão, escrito pelo aluno ao enviar. */
+  observacao?: string
 }
 
 export interface Feedback {
@@ -137,13 +139,17 @@ export interface Banca {
   situacao: BancaSituacao
   data?: string
   local?: string
+  /** Endereço da sala virtual, quando a defesa é (ou também é) online. */
+  link?: string
   membros: MembroBanca[]
 }
 
 export interface NovoDocumento {
   tccId: string
-  nome: string
+  /** Projeto, Monografia, Capítulo, Relatório ou Outro: as versões se ligam por TCC + tipo. */
   tipo: string
+  /** O que mudou nesta versão (opcional). */
+  observacao?: string
   arquivo: string
   /** Endereço do PDF enviado (no protótipo, um endereço local do navegador). */
   arquivoUrl?: string
@@ -404,5 +410,6 @@ export interface NovaBanca {
   tccId: string
   data?: string
   local?: string
+  link?: string
   membros: MembroBanca[]
 }

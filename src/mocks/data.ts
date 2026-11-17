@@ -102,17 +102,18 @@ export interface DocumentoRecord {
   status: DocumentoStatus
   /** PDF de exemplo para visualização com comentários. */
   arquivoUrl?: string
+  observacao?: string
 }
 
 export const documentos: DocumentoRecord[] = [
-  { id: 'd1', tccId: 't1', nome: 'Monografia', versao: 1, tipo: 'Monografia', enviadoEm: addDays(-30), status: 'substituida', arquivoUrl: publico('exemplos/monografia-exemplo.pdf') },
-  { id: 'd2', tccId: 't1', nome: 'Monografia', versao: 2, tipo: 'Monografia', enviadoEm: addDays(-15), status: 'substituida', arquivoUrl: publico('exemplos/monografia-exemplo.pdf') },
-  { id: 'd3', tccId: 't1', nome: 'Monografia', versao: 3, tipo: 'Monografia', enviadoEm: addDays(-2), status: 'correcao', arquivoUrl: publico('exemplos/monografia-exemplo.pdf') },
-  { id: 'd4', tccId: 't2', nome: 'Projeto de pesquisa', versao: 2, tipo: 'Projeto', enviadoEm: addDays(-22), status: 'aprovado', arquivoUrl: publico('exemplos/capitulo-exemplo.pdf') },
-  { id: 'd5', tccId: 't2', nome: 'Revisão bibliográfica', versao: 1, tipo: 'Capítulo', enviadoEm: addDays(-1), status: 'pendente_revisao', arquivoUrl: publico('exemplos/capitulo-exemplo.pdf') },
-  { id: 'd6', tccId: 't3', nome: 'Projeto de pesquisa', versao: 1, tipo: 'Projeto', enviadoEm: addDays(-10), status: 'correcao', arquivoUrl: publico('exemplos/capitulo-exemplo.pdf') },
-  { id: 'd7', tccId: 't4', nome: 'Relatório parcial', versao: 1, tipo: 'Relatório', enviadoEm: addDays(-9), status: 'aprovado', arquivoUrl: publico('exemplos/capitulo-exemplo.pdf') },
-  { id: 'd8', tccId: 't5', nome: 'Projeto do TCC 1', versao: 1, tipo: 'Projeto', enviadoEm: addDays(-3), status: 'pendente_revisao', arquivoUrl: publico('exemplos/capitulo-exemplo.pdf') },
+  { id: 'd1', tccId: 't1', nome: 'Monografia', versao: 1, tipo: 'Monografia', enviadoEm: addDays(-30), status: 'substituida', arquivoUrl: publico('exemplos/monografia-exemplo.pdf'), observacao: 'Primeira versão completa, com todos os capítulos.' },
+  { id: 'd2', tccId: 't1', nome: 'Monografia', versao: 2, tipo: 'Monografia', enviadoEm: addDays(-15), status: 'substituida', arquivoUrl: publico('exemplos/monografia-exemplo.pdf'), observacao: 'Ajustei a metodologia e reescrevi o resumo.' },
+  { id: 'd3', tccId: 't1', nome: 'Monografia', versao: 3, tipo: 'Monografia', enviadoEm: addDays(-2), status: 'correcao', arquivoUrl: publico('exemplos/monografia-exemplo.pdf'), observacao: 'Incluí os critérios de seleção dos portais e revisei as referências.' },
+  { id: 'd4', tccId: 't2', nome: 'Projeto', versao: 2, tipo: 'Projeto', enviadoEm: addDays(-22), status: 'aprovado', arquivoUrl: publico('exemplos/capitulo-exemplo.pdf') },
+  { id: 'd5', tccId: 't2', nome: 'Capítulo', versao: 1, tipo: 'Capítulo', enviadoEm: addDays(-1), status: 'pendente_revisao', arquivoUrl: publico('exemplos/capitulo-exemplo.pdf'), observacao: 'Capítulo da revisão bibliográfica, primeira versão.' },
+  { id: 'd6', tccId: 't3', nome: 'Projeto', versao: 1, tipo: 'Projeto', enviadoEm: addDays(-10), status: 'correcao', arquivoUrl: publico('exemplos/capitulo-exemplo.pdf') },
+  { id: 'd7', tccId: 't4', nome: 'Relatório', versao: 1, tipo: 'Relatório', enviadoEm: addDays(-9), status: 'aprovado', arquivoUrl: publico('exemplos/capitulo-exemplo.pdf') },
+  { id: 'd8', tccId: 't5', nome: 'Projeto', versao: 1, tipo: 'Projeto', enviadoEm: addDays(-3), status: 'pendente_revisao', arquivoUrl: publico('exemplos/capitulo-exemplo.pdf') },
   { id: 'd9', tccId: 't6', nome: 'Monografia', versao: 4, tipo: 'Monografia', enviadoEm: addDays(-1), status: 'pendente_revisao', arquivoUrl: publico('exemplos/monografia-exemplo.pdf') },
 ]
 
@@ -144,11 +145,12 @@ export interface BancaRecord {
   situacao: BancaSituacao
   data?: string
   local?: string
+  link?: string
   membros: MembroBanca[]
 }
 
 /** Defesa de exemplo (sem TCC no mock): futura fica agendada, passada fica realizada. */
-function defesaExemplo(id: string, aluno: string, titulo: string, dias: number, local: string, presidente: string, examinador1: string, examinador2: string): BancaRecord {
+function defesaExemplo(id: string, aluno: string, titulo: string, dias: number, local: string, presidente: string, examinador1: string, examinador2: string, link?: string): BancaRecord {
   return {
     id,
     tituloExterno: titulo,
@@ -156,6 +158,7 @@ function defesaExemplo(id: string, aluno: string, titulo: string, dias: number, 
     situacao: dias < 0 ? 'realizada' : 'agendada',
     data: addDays(dias),
     local,
+    ...(link ? { link } : {}),
     membros: [
       { nome: presidente, papel: 'Orientador (presidente)', instituicao: 'UnB' },
       { nome: examinador1, papel: 'Examinador', instituicao: 'UnB' },
@@ -183,7 +186,8 @@ export const bancas: BancaRecord[] = [
     tccId: 't6',
     situacao: 'agendada',
     data: addDays(40),
-    local: 'Sala virtual (link divulgado pela coordenação)',
+    local: 'Sala virtual',
+    link: 'https://sala-virtual.example/banca-b3',
     membros: [
       { nome: 'Profa. Dra. Helena Prado', papel: 'Orientadora (presidente)', instituicao: 'UnB' },
       { nome: 'Prof. Dr. Otávio Lemos', papel: 'Examinador', instituicao: 'UnB' },
@@ -205,11 +209,11 @@ export const bancas: BancaRecord[] = [
   },
   // Outras defesas abertas ao público (de alunos que não aparecem nos demais exemplos).
   defesaExemplo('b5', 'Júlia Ramos', 'Triagem de sintomas por texto com processamento de linguagem natural', 3, 'Auditório da Faculdade de Tecnologia, sala 3', 'Prof. Dr. Carlos Andrade', 'Profa. Dra. Helena Prado', 'Prof. Dr. Otávio Lemos'),
-  defesaExemplo('b6', 'Tiago Mendes', 'Desempenho de bancos NoSQL em cargas de leitura e escrita mistas', 9, 'Sala virtual (link divulgado pela coordenação)', 'Profa. Dra. Helena Prado', 'Prof. Dr. Renato Teixeira', 'Profa. Dra. Mirela Tavares'),
+  defesaExemplo('b6', 'Tiago Mendes', 'Desempenho de bancos NoSQL em cargas de leitura e escrita mistas', 9, 'Sala virtual', 'Profa. Dra. Helena Prado', 'Prof. Dr. Renato Teixeira', 'Profa. Dra. Mirela Tavares', 'https://sala-virtual.example/banca-b6'),
   defesaExemplo('b7', 'Larissa Duarte', 'Detecção de notícias falsas em português com modelos de linguagem', 14, 'Auditório da Faculdade de Tecnologia, sala 12', 'Prof. Dr. Carlos Andrade', 'Prof. Dr. Otávio Lemos', 'Profa. Dra. Ana Beltrão'),
   defesaExemplo('b8', 'Bruno Carvalho', 'Gamificação no ensino de lógica de programação', 18, 'Laboratório de Informática, bloco B', 'Profa. Dra. Mirela Tavares', 'Prof. Dr. Renato Teixeira', 'Profa. Dra. Helena Prado'),
   defesaExemplo('b9', 'Camila Torres', 'Monitoramento do consumo de energia residencial com sensores de baixo custo', -10, 'Auditório da Faculdade de Tecnologia, sala 3', 'Prof. Dr. Otávio Lemos', 'Prof. Dr. Carlos Andrade', 'Profa. Dra. Mirela Tavares'),
-  defesaExemplo('b10', 'Rafael Nunes', 'Assistente virtual para o atendimento de calouros', -20, 'Sala virtual (link divulgado pela coordenação)', 'Profa. Dra. Helena Prado', 'Prof. Dr. Renato Teixeira', 'Prof. Dr. Otávio Lemos'),
+  defesaExemplo('b10', 'Rafael Nunes', 'Assistente virtual para o atendimento de calouros', -20, 'Sala virtual', 'Profa. Dra. Helena Prado', 'Prof. Dr. Renato Teixeira', 'Prof. Dr. Otávio Lemos'),
 ]
 
 /* ---------- Orientação: catálogo, perfis públicos e solicitações (dados fictícios) ---------- */

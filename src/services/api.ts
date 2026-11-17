@@ -29,6 +29,8 @@ import {
   type PerfilProfessorRecord,
   type SolicitacaoRecord,
 } from '../mocks/data'
+import { LIMITE_OBSERVACAO, TIPOS_DOCUMENTO } from '../lib/documentos'
+import { linkWebSeguro } from '../lib/links'
 import { daysUntil, proximosSemestres, toIso } from '../lib/format'
 import { emailUnbValido } from '../lib/validators'
 import type {
@@ -220,6 +222,7 @@ function toBanca(b: (typeof bancas)[number]): Banca {
     situacao: b.situacao,
     data: b.data,
     local: b.local,
+    link: b.link,
     membros: b.membros,
   }
 }
@@ -327,7 +330,7 @@ function docView(d: DocumentoRecord): Documento {
   const correcoesPendentes =
     feedbacks.filter((f) => f.documentoId === d.id && f.tipo === 'correcao' && !f.resolvido).length + doDoc.filter((a) => a.tipo === 'correcao' && !a.resolvida).length
   const maisNova = documentos
-    .filter((o) => o.tccId === d.tccId && o.nome === d.nome && o.versao > d.versao)
+    .filter((o) => o.tccId === d.tccId && o.tipo === d.tipo && o.versao > d.versao)
     .sort((a, b) => b.versao - a.versao)[0]
   const ultimaVersao = !maisNova
   return { ...d, alunoNome: aluno(d.tccId), anotacoes: { total: doDoc.length, abertas: doDoc.filter((a) => !a.resolvida).length }, correcoesPendentes, ultimaVersao, versaoMaisRecente: maisNova && { id: maisNova.id, versao: maisNova.versao, enviadoEm: maisNova.enviadoEm } }
@@ -356,21 +359,25 @@ export async function sendDocumento(user: User, input: NovoDocumento): Promise<D
     }
     if (!origemOk || !input.arquivo.toLowerCase().endsWith('.pdf')) throw new ApiError('Arquivo inválido. Envie um PDF.', 422)
   }
-  // maior número já usado + 1 (não a contagem: o histórico pode começar em outra versão)
-  const versao = Math.max(0, ...documentos.filter((d) => d.tccId === input.tccId && d.nome === input.nome).map((d) => d.versao)) + 1
+  if (!(TIPOS_DOCUMENTO as readonly string[]).includes(input.tipo)) throw new ApiError('Escolha o tipo do documento.', 422)
+  const observacao = typeof input.observacao === 'string' ? input.observacao.trim() : ''
+  if (observacao.length > LIMITE_OBSERVACAO) throw new ApiError(`A observação pode ter no máximo ${LIMITE_OBSERVACAO} caracteres.`, 422)
+  // as versões se ligam por TCC + tipo; maior número já usado + 1 (não a contagem: o histórico pode começar em outra versão)
+  const versao = Math.max(0, ...documentos.filter((d) => d.tccId === input.tccId && d.tipo === input.tipo).map((d) => d.versao)) + 1
   const rec = {
     id: `d${Date.now()}`,
     tccId: input.tccId,
-    nome: input.nome,
+    nome: input.tipo, // o nome mostrado é o tipo: não há mais nome livre
     versao,
     tipo: input.tipo,
     enviadoEm: addDays(0),
     status: 'pendente_revisao' as const,
     arquivoUrl: input.arquivoUrl,
+    ...(observacao ? { observacao } : {}),
   }
   // a versão anterior deixa de aguardar revisão: o orientador passa a avaliar a nova (versão aprovada continua aprovada)
   for (const antiga of documentos) {
-    if (antiga.tccId === rec.tccId && antiga.nome === rec.nome && antiga.status !== 'aprovado') antiga.status = 'substituida'
+    if (antiga.tccId === rec.tccId && antiga.tipo === rec.tipo && antiga.status !== 'aprovado') antiga.status = 'substituida'
   }
   documentos.push(rec)
   await new Promise((r) => setTimeout(r, 500))
@@ -471,7 +478,7 @@ export async function aprovarDocumento(user: User, id: string): Promise<void> {
   const doc = documentoAcessivel(user, id)
   if (user.role !== 'orientador') throw new ApiError('Somente o orientador aprova uma versão', 403)
   if (doc.status === 'aprovado') throw new ApiError('Esta versão já está aprovada.', 409)
-  if (documentos.some((o) => o.tccId === doc.tccId && o.nome === doc.nome && o.versao > doc.versao)) {
+  if (documentos.some((o) => o.tccId === doc.tccId && o.tipo === doc.tipo && o.versao > doc.versao)) {
     throw new ApiError('Só a versão mais recente pode ser aprovada.', 409)
   }
   doc.status = 'aprovado'
@@ -933,7 +940,7 @@ export function listLinhaDoTempo(user: User, tccId: string): Promise<EventoTempo
     })
   }
   for (const d of documentos.filter((x) => x.tccId === tccId)) {
-    ev.push({ id: `doc-${d.id}`, tccId, data: d.enviadoEm, tipo: 'documento', titulo: `${d.nome}, versão ${d.versao}, enviado`, detalhe: d.tipo, documentoId: d.id })
+    ev.push({ id: `doc-${d.id}`, tccId, data: d.enviadoEm, tipo: 'documento', titulo: `${d.nome}, versão ${d.versao}, enviado`, detalhe: d.observacao, documentoId: d.id })
   }
   for (const f of feedbacks.filter((x) => x.tccId === tccId)) {
     ev.push({
@@ -1116,6 +1123,12 @@ function validarBanca(input: NovaBanca, dataAtual?: string): void {
   // uma proposta antiga mantém a data que já tinha; só uma data nova precisa ser de hoje em diante
   if (input.data && input.data !== dataAtual && input.data < addDays(0)) throw new ApiError('A data da banca não pode ser anterior a hoje.', 422)
   if ((input.local?.length ?? 0) > 200) throw new ApiError('O local pode ter no máximo 200 caracteres.', 422)
+  if (input.link != null) {
+    if (typeof input.link !== 'string') throw new ApiError('Link inválido.', 422)
+    const link = input.link.trim()
+    if (link.length > 300) throw new ApiError('O link pode ter no máximo 300 caracteres.', 422)
+    if (link && !linkWebSeguro(link)) throw new ApiError('Informe um link começando com http:// ou https://, sem espaços nem usuário e senha.', 422)
+  }
   if (!Array.isArray(input.membros) || input.membros.length < 1 || input.membros.length > 6) {
     throw new ApiError('Informe de 1 a 6 membros da banca.', 422)
   }
@@ -1144,7 +1157,7 @@ export async function createBanca(user: User, input: NovaBanca): Promise<Banca> 
   const existente = bancas.find((b) => b.tccId === input.tccId)
   if (existente && existente.situacao !== 'a_definir') throw new ApiError('Este TCC já tem uma banca proposta ou validada.', 409)
   validarBanca(input)
-  const dados = { situacao: 'proposta' as const, data: input.data || undefined, local: input.local?.trim() || undefined, membros: membrosLimpos(input) }
+  const dados = { situacao: 'proposta' as const, data: input.data || undefined, local: input.local?.trim() || undefined, link: linkWebSeguro(input.link), membros: membrosLimpos(input) }
   let rec = existente
   if (rec) Object.assign(rec, dados)
   else {
@@ -1175,7 +1188,8 @@ export async function updateBanca(user: User, id: string, input: Omit<NovaBanca,
   const rec = bancaEditavel(user, id)
   validarBanca({ ...input, tccId: rec.tccId as string }, rec.data)
   if (rec.situacao === 'agendada' && !input.data) throw new ApiError('Uma banca agendada precisa de data.', 422)
-  Object.assign(rec, { data: input.data || undefined, local: input.local?.trim() || undefined, membros: membrosLimpos({ ...input, tccId: rec.tccId as string }) })
+  // campo `link` ausente mantém o que já existe; texto vazio apaga
+  Object.assign(rec, { data: input.data || undefined, local: input.local?.trim() || undefined, link: 'link' in input ? linkWebSeguro(input.link) : rec.link, membros: membrosLimpos({ ...input, tccId: rec.tccId as string }) })
   await wait()
   return toBanca(rec)
 }
