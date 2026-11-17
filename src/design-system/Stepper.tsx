@@ -1,5 +1,5 @@
 import type { Etapa } from '../types'
-import { cn } from '../lib/format'
+import { cn, formatDate } from '../lib/format'
 import { Icon } from './Icon'
 
 /** Linha do tempo das etapas do TCC 1 e TCC 2. */
@@ -35,6 +35,7 @@ export function Stepper({ etapas }: { etapas: Etapa[] }) {
               </p>
               <p className="text-xs text-ink-muted">
                 {e.situacao === 'concluida' ? 'Concluída' : e.situacao === 'atual' ? 'Etapa atual' : 'Próxima etapa'}
+                {e.prazo && ` · até ${formatDate(e.prazo)}`}
               </p>
             </div>
           </li>
