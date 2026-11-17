@@ -378,4 +378,6 @@ ou recarregar a página reinicia esses dados, e então um documento enviado ante
   orientador (aba Etapas do orientando); a coordenação só acompanha. A etapa fica "Concluída em dd/mm/aaaa por Nome" e a seguinte passa a ser a atual;
   concluir a última deixa o trabalho com todas as etapas concluídas (progresso 100%). Não há "desfazer": o orientador corrige pela ação **Definir etapas**
   (marcando a etapa atual). A conclusão pelo aluno não precisa de aprovação do orientador neste protótipo.
+- **Calendário público**: só defesas (agendadas e realizadas) e o período de inscrições em vigor. Saíram os prazos institucionais de TCC 1 e TCC 2 (filtros
+  e dados de exemplo). Ganhou seis defesas de exemplo (duas já realizadas e quatro nas próximas semanas), que também aparecem em Bancas.
 
