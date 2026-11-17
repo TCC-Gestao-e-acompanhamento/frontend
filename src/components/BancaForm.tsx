@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { Button, Field, Input, Select } from '../design-system'
 import { toIso } from '../lib/format'
+import { linkWebSeguro } from '../lib/links'
 import type { MembroBanca } from '../types'
 
 const PAPEIS = ['Orientador (presidente)', 'Orientadora (presidente)', 'Examinador', 'Examinadora', 'Suplente']
@@ -12,9 +13,9 @@ interface Linha extends MembroBanca {
 interface Props {
   /** Nome do orientador, já sugerido como primeiro membro. */
   orientadorNome?: string
-  inicial?: { data?: string; local?: string; membros: MembroBanca[] }
+  inicial?: { data?: string; local?: string; link?: string; membros: MembroBanca[] }
   submitLabel: string
-  onSubmit: (dados: { data?: string; local?: string; membros: MembroBanca[] }) => Promise<void>
+  onSubmit: (dados: { data?: string; local?: string; link?: string; membros: MembroBanca[] }) => Promise<void>
   onCancel?: () => void
 }
 
@@ -24,6 +25,7 @@ export function BancaForm({ orientadorNome, inicial, submitLabel, onSubmit, onCa
   const [hoje] = useState(() => toIso(new Date()))
   const [data, setData] = useState(inicial?.data ?? '')
   const [local, setLocal] = useState(inicial?.local ?? '')
+  const [link, setLink] = useState(inicial?.link ?? '')
   const [membros, setMembros] = useState<Linha[]>(() =>
     inicial?.membros.length
       ? inicial.membros.map(nova)
@@ -45,6 +47,7 @@ export function BancaForm({ orientadorNome, inicial, submitLabel, onSubmit, onCa
     const novos: Record<string, string> = {}
     // só uma data nova precisa ser de hoje em diante (a proposta antiga mantém a que já tinha)
     if (data && data !== inicial?.data && data < hoje) novos.data = 'A data não pode ser anterior a hoje.'
+    if (link.trim() && !linkWebSeguro(link)) novos.link = 'Informe um link começando com http:// ou https://.'
     membros.forEach((m) => {
       if (m.nome.trim().length < 3) novos[`nome-${m.chave}`] = 'Informe o nome.'
       if (m.instituicao.trim().length < 2) novos[`inst-${m.chave}`] = 'Informe a instituição.'
@@ -54,7 +57,7 @@ export function BancaForm({ orientadorNome, inicial, submitLabel, onSubmit, onCa
     setEnviando(true)
     setErroEnvio(undefined)
     try {
-      await onSubmit({ data: data || undefined, local: local.trim() || undefined, membros: membros.map(({ nome, papel, instituicao }) => ({ nome, papel, instituicao })) })
+      await onSubmit({ data: data || undefined, local: local.trim() || undefined, link: linkWebSeguro(link), membros: membros.map(({ nome, papel, instituicao }) => ({ nome, papel, instituicao })) })
     } catch (err) {
       setErroEnvio(err instanceof Error ? err.message : 'Não foi possível salvar a banca.')
       setEnviando(false)
@@ -67,7 +70,12 @@ export function BancaForm({ orientadorNome, inicial, submitLabel, onSubmit, onCa
         <Field label="Data prevista (opcional)" error={erros.data}>
           {(p) => <Input {...p} type="date" min={hoje} value={data} onChange={(e) => setData(e.target.value)} />}
         </Field>
-        <Field label="Local (opcional)">{(p) => <Input {...p} value={local} onChange={(e) => setLocal(e.target.value)} placeholder="Ex.: sala ou link da reunião virtual" maxLength={200} />}</Field>
+        <Field label="Local (opcional)">{(p) => <Input {...p} value={local} onChange={(e) => setLocal(e.target.value)} placeholder="Ex.: Auditório da Faculdade de Tecnologia, sala 12" maxLength={200} />}</Field>
+        <div className="sm:col-span-2">
+          <Field label="Link da sala virtual (opcional)" error={erros.link} hint="Se a defesa for online, informe o endereço da reunião. Ele aparece junto da banca.">
+            {(p) => <Input {...p} type="url" inputMode="url" value={link} onChange={(e) => setLink(e.target.value)} placeholder="https://" maxLength={300} autoComplete="off" />}
+          </Field>
+        </div>
       </div>
 
       <fieldset className="space-y-3">

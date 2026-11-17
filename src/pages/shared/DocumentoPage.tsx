@@ -143,7 +143,7 @@ export default function DocumentoPage() {
             <div className="space-y-6">
               <PageHeader
                 title={`${d.nome}, versão ${d.versao}`}
-                description={`${papel === "orientador" ? `${d.alunoNome} · ` : ""}${d.tipo} · enviado em ${d.enviadoEm.split("-").reverse().join("/")}`}
+                description={`${papel === "orientador" ? `${d.alunoNome} · ` : ""}enviado em ${d.enviadoEm.split("-").reverse().join("/")}`}
                 actions={
                   <div className="flex flex-wrap items-center gap-3">
                     <StatusBadge kind="documento" value={d.status} />
@@ -164,6 +164,12 @@ export default function DocumentoPage() {
                   </div>
                 }
               />
+              {d.observacao && (
+                <p className="rounded-lg bg-surface-muted p-3 text-sm">
+                  <span className="font-medium">O que mudou nesta versão:</span>{" "}
+                  <span className="break-words whitespace-pre-wrap">{d.observacao}</span>
+                </p>
+              )}
 
               {(gerais.length > 0 || papel === "orientador") && (
                 <SectionCard
