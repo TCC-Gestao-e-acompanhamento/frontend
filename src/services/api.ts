@@ -10,6 +10,7 @@ import {
   anotacoes,
   areas,
   atividades,
+  type AtividadeRecord,
   bancas,
   conteudoDoDocumento,
   cursos,
@@ -18,8 +19,7 @@ import {
   inscricoes,
   orientacoes,
   perfisProfessores,
-  periodoInscricao,
-  prazosInstitucionais,
+  periodosInscricao,
   solicitacoes,
   tccs,
   users,
@@ -29,7 +29,7 @@ import {
   type PerfilProfessorRecord,
   type SolicitacaoRecord,
 } from '../mocks/data'
-import { daysUntil, proximosSemestres } from '../lib/format'
+import { daysUntil, proximosSemestres, toIso } from '../lib/format'
 import { emailUnbValido } from '../lib/validators'
 import type {
   AreaOrientacao,
@@ -48,9 +48,13 @@ import type {
   Orientacao,
   PeriodoInput,
   PeriodoInscricao,
+  PeriodoResumo,
   Documento,
   DocumentoConteudo,
   Etapa,
+  EtapaDef,
+  DefinirEtapas,
+  NovaAtividade,
   Feedback,
   NovaSolicitacao,
   NovoDocumento,
@@ -59,7 +63,6 @@ import type {
   PerfilPublicoInput,
   ProfessorPublico,
   Solicitacao,
-  PrazoInstitucional,
   Tcc,
   TccRecord,
   TccStatus,
@@ -74,7 +77,7 @@ export class ApiError extends Error {
   }
 }
 
-const ETAPAS: Array<Pick<Etapa, 'nome' | 'fase'>> = [
+const ETAPAS: EtapaDef[] = [
   { nome: 'Definição do tema e do orientador', fase: 'TCC1' },
   { nome: 'Projeto de pesquisa', fase: 'TCC1' },
   { nome: 'Revisão bibliográfica', fase: 'TCC1' },
@@ -108,10 +111,18 @@ const userById = (id: string): User => {
 
 function buildTcc(r: TccRecord): Tcc {
   const atvs = atividades.filter((a) => a.tccId === r.id)
-  const etapas: Etapa[] = ETAPAS.map((e, i) => ({
-    ...e,
-    situacao: i < r.etapaIndex ? 'concluida' : i === r.etapaIndex ? 'atual' : 'futura',
-  }))
+  const lista: EtapaDef[] = r.etapasDef ?? ETAPAS
+  // etapaIndex igual ao total = todas concluídas (nenhuma etapa fica como atual)
+  const posicao = Math.min(r.etapaIndex, lista.length)
+  const atual = Math.min(posicao, lista.length - 1)
+  const etapas: Etapa[] = lista.map((e, i) => {
+    const c = r.conclusoes?.[e.nome.toLowerCase()]
+    return {
+      ...e,
+      situacao: i < posicao ? 'concluida' : i === posicao ? 'atual' : 'futura',
+      ...(i < posicao && c ? { concluidaEm: c.em, concluidaPor: userById(c.porId).nome } : {}),
+    }
+  })
   const pendencias = atvs.filter((a) => a.status === 'pendente' || a.status === 'atrasada').length
   let status: TccStatus = 'em_andamento'
   if (atvs.some((a) => a.status === 'atrasada')) status = 'atrasado'
@@ -122,10 +133,10 @@ function buildTcc(r: TccRecord): Tcc {
     semestre: r.semestre,
     aluno: userById(r.alunoId),
     orientador: userById(r.orientadorId),
-    fase: ETAPAS[r.etapaIndex].fase,
-    etapaAtual: ETAPAS[r.etapaIndex].nome,
+    fase: lista[atual].fase,
+    etapaAtual: posicao >= lista.length ? 'Todas as etapas concluídas' : lista[atual].nome,
     etapas,
-    progresso: Math.round((r.etapaIndex / ETAPAS.length) * 100),
+    progresso: Math.round((posicao / lista.length) * 100),
     status,
     pendencias,
   }
@@ -171,15 +182,17 @@ export function getIndicadoresPublicos(): Promise<IndicadoresPublicos> {
   return settle(data, { ...data, totalTccs: 0, tcc1: 0, tcc2: 0, defesasAgendadas: 0, defesasRealizadas: 0 })
 }
 
-/** Prazos institucionais e defesas públicas num só calendário (somente dados públicos). */
+function periodoDoCalendario(): EventoCalendario[] {
+  const p = periodoAtivo()
+  if (!p) return []
+  return [
+    { id: 'insc-ini', data: p.inicio, titulo: `Abertura das inscrições de TCC ${p.semestre}`, tipo: 'inscricao' },
+    { id: 'insc-fim', data: p.fim, titulo: `Encerramento das inscrições de TCC ${p.semestre}`, tipo: 'inscricao' },
+  ]
+}
+
+/** Defesas públicas e período de inscrições num só calendário (somente dados públicos). */
 export function listEventosPublicos(): Promise<EventoCalendario[]> {
-  const prazos: EventoCalendario[] = prazosInstitucionais.map((p) => ({
-    id: p.id,
-    data: p.data,
-    titulo: p.titulo,
-    tipo: 'prazo',
-    fase: p.fase,
-  }))
   const defesas: EventoCalendario[] = bancas
     .filter((b) => (b.situacao === 'agendada' || b.situacao === 'realizada') && b.data)
     .map(toBanca)
@@ -191,10 +204,9 @@ export function listEventosPublicos(): Promise<EventoCalendario[]> {
       detalhe: b.local,
     }))
   const inscr: EventoCalendario[] = [
-    { id: 'insc-ini', data: periodoInscricao.inicio, titulo: `Abertura das inscrições de TCC ${periodoInscricao.semestre}`, tipo: 'inscricao' },
-    { id: 'insc-fim', data: periodoInscricao.fim, titulo: `Encerramento das inscrições de TCC ${periodoInscricao.semestre}`, tipo: 'inscricao' },
+    ...periodoDoCalendario(),
   ]
-  const data = [...prazos, ...defesas, ...inscr].sort((a, b) => a.data.localeCompare(b.data))
+  const data = [...defesas, ...inscr].sort((a, b) => a.data.localeCompare(b.data))
   return settle(data, [])
 }
 
@@ -221,10 +233,6 @@ export function listBancasPublicas(): Promise<Banca[]> {
   return settle(data, [])
 }
 
-export function listPrazosInstitucionais(): Promise<PrazoInstitucional[]> {
-  return settle(prazosInstitucionais, [])
-}
-
 /* ----------------------------- Autenticados ----------------------------- */
 
 export function listTccs(user: User): Promise<Tcc[]> {
@@ -233,6 +241,75 @@ export function listTccs(user: User): Promise<Tcc[]> {
 
 export function getTcc(user: User, id: string): Promise<Tcc> {
   return settle(buildTcc(assertAccess(user, id)), buildTcc(assertAccess(user, id)))
+}
+
+/** Aluno ou orientador do TCC conclui a etapa atual: a seguinte passa a ser a atual (ou o trabalho fica com todas concluídas). */
+export async function concluirEtapa(user: User, tccId: string, etapaEsperada: string): Promise<Tcc> {
+  if (user.role !== 'aluno' && user.role !== 'orientador') throw new ApiError('Somente o aluno ou o orientador concluem uma etapa', 403)
+  const rec = assertAccess(user, tccId)
+  const lista: EtapaDef[] = rec.etapasDef ?? ETAPAS
+  if (rec.etapaIndex >= lista.length) throw new ApiError('Todas as etapas deste trabalho já foram concluídas.', 409)
+  const etapa = lista[rec.etapaIndex]
+  // quem confirma viu uma etapa específica: se a outra parte já concluiu, não conclui a seguinte sem querer
+  if (etapa.nome.toLowerCase() !== String(etapaEsperada ?? '').toLowerCase()) throw new ApiError('A etapa atual mudou enquanto você olhava. A tela foi atualizada: confira e conclua de novo se for o caso.', 409)
+  rec.conclusoes = { ...rec.conclusoes, [etapa.nome.toLowerCase()]: { em: addDays(0), porId: user.id } }
+  rec.etapaIndex += 1
+  await wait(350)
+  return buildTcc(rec)
+}
+
+const dataIsoValida = (v: unknown): v is string => {
+  if (typeof v !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(v)) return false
+  const d = new Date(`${v}T00:00:00`)
+  return !Number.isNaN(d.getTime()) && toIso(d) === v
+}
+
+/** O orientador define as etapas do trabalho (nomes, em qual TCC entram, datas) e em qual delas o aluno está. */
+export async function defineEtapas(user: User, tccId: string, input: DefinirEtapas): Promise<Tcc> {
+  if (user.role !== 'orientador') throw new ApiError('Somente o orientador define as etapas do trabalho', 403)
+  const rec = assertAccess(user, tccId)
+  const etapas = input?.etapas
+  if (!Array.isArray(etapas) || etapas.length < 1 || etapas.length > 12) throw new ApiError('Informe de 1 a 12 etapas.', 422)
+  const limpas: EtapaDef[] = []
+  let ultimoPrazo = ''
+  for (const e of etapas) {
+    if (!e || typeof e !== 'object' || typeof e.nome !== 'string') throw new ApiError('Dados de etapa inválidos.', 422)
+    const nome = e.nome.trim()
+    if (nome.length < 3 || nome.length > 80) throw new ApiError('O nome de cada etapa precisa ter de 3 a 80 caracteres.', 422)
+    if (e.fase !== 'TCC1' && e.fase !== 'TCC2') throw new ApiError('Escolha TCC 1 ou TCC 2 para cada etapa.', 422)
+    if (limpas.some((o) => o.nome.toLowerCase() === nome.toLowerCase())) throw new ApiError(`A etapa "${nome}" aparece mais de uma vez.`, 422)
+    if (limpas.length && limpas[limpas.length - 1].fase === 'TCC2' && e.fase === 'TCC1') throw new ApiError('As etapas do TCC 1 vêm antes das do TCC 2.', 422)
+    if (e.prazo) {
+      if (!dataIsoValida(e.prazo)) throw new ApiError('Data de etapa inválida.', 422)
+      if (e.prazo < ultimoPrazo) throw new ApiError('As datas das etapas devem seguir a ordem da lista.', 422)
+      ultimoPrazo = e.prazo
+    }
+    limpas.push({ nome, fase: e.fase, ...(e.prazo ? { prazo: e.prazo } : {}) })
+  }
+  // atual igual ao total = todas as etapas concluídas
+  if (!Number.isInteger(input.atual) || input.atual < 0 || input.atual > limpas.length) throw new ApiError('Escolha a etapa atual.', 422)
+  rec.etapasDef = limpas
+  rec.etapaIndex = input.atual
+  // mantém quem concluiu as etapas que continuam antes da atual; as demais perdem a conclusão
+  const nomesAnteriores = limpas.slice(0, input.atual).map((e) => e.nome.toLowerCase())
+  rec.conclusoes = Object.fromEntries(Object.entries(rec.conclusoes ?? {}).filter(([nome]) => nomesAnteriores.includes(nome)))
+  await wait(350)
+  return buildTcc(rec)
+}
+
+/** O orientador cria uma atividade (reunião, entrega ou marco) no cronograma de um orientando. */
+export async function createAtividade(user: User, input: NovaAtividade): Promise<Atividade> {
+  if (user.role !== 'orientador') throw new ApiError('Somente o orientador cria atividades no cronograma', 403)
+  assertAccess(user, input.tccId)
+  const titulo = String(input.titulo ?? '').trim()
+  if (titulo.length < 3 || titulo.length > 120) throw new ApiError('O título precisa ter de 3 a 120 caracteres.', 422)
+  if (input.tipo !== 'reuniao' && input.tipo !== 'entrega' && input.tipo !== 'marco') throw new ApiError('Tipo de atividade inválido.', 422)
+  if (!dataIsoValida(input.prazo)) throw new ApiError('Informe a data da atividade.', 422)
+  if (input.prazo < addDays(0)) throw new ApiError('A data da atividade não pode ser anterior a hoje.', 422)
+  const rec: AtividadeRecord = { id: `at${Date.now()}${Math.random().toString(36).slice(2, 6)}`, tccId: input.tccId, titulo, prazo: input.prazo, status: 'pendente', tipo: input.tipo }
+  atividades.push(rec)
+  await wait(300)
+  return { ...rec, alunoNome: aluno(rec.tccId) }
 }
 
 export function listAtividades(user: User, tccId?: string): Promise<Atividade[]> {
@@ -249,8 +326,11 @@ function docView(d: DocumentoRecord): Documento {
   const doDoc = anotacoes.filter((a) => a.documentoId === d.id)
   const correcoesPendentes =
     feedbacks.filter((f) => f.documentoId === d.id && f.tipo === 'correcao' && !f.resolvido).length + doDoc.filter((a) => a.tipo === 'correcao' && !a.resolvida).length
-  const ultimaVersao = !documentos.some((o) => o.tccId === d.tccId && o.nome === d.nome && o.versao > d.versao)
-  return { ...d, alunoNome: aluno(d.tccId), anotacoes: { total: doDoc.length, abertas: doDoc.filter((a) => !a.resolvida).length }, correcoesPendentes, ultimaVersao }
+  const maisNova = documentos
+    .filter((o) => o.tccId === d.tccId && o.nome === d.nome && o.versao > d.versao)
+    .sort((a, b) => b.versao - a.versao)[0]
+  const ultimaVersao = !maisNova
+  return { ...d, alunoNome: aluno(d.tccId), anotacoes: { total: doDoc.length, abertas: doDoc.filter((a) => !a.resolvida).length }, correcoesPendentes, ultimaVersao, versaoMaisRecente: maisNova && { id: maisNova.id, versao: maisNova.versao, enviadoEm: maisNova.enviadoEm } }
 }
 
 export function listDocumentos(user: User, tccId?: string): Promise<Documento[]> {
@@ -364,10 +444,25 @@ export async function updateFeedback(user: User, id: string, input: AtualizacaoF
     fb.tipo = input.tipo
     fb.resolvido = input.tipo === 'comentario'
     if (doc && input.tipo === 'correcao') registrarPedidoDeCorrecao(doc)
+    if (doc && input.tipo === 'comentario') recalcularStatusDoDocumento(doc)
   }
   // correção reescrita volta a ficar pendente: o aluno precisa ver o que mudou
   if (fb.tipo === 'correcao' && input.texto.trim() !== fb.texto) fb.resolvido = false
   fb.texto = input.texto.trim()
+  await wait(300)
+}
+
+/** O orientador autor apaga o retorno geral de uma versão ainda aberta; o formulário volta a ficar disponível. */
+export async function deleteFeedback(user: User, id: string): Promise<void> {
+  const fb = feedbacks.find((f) => f.id === id)
+  if (!fb) throw new ApiError('Feedback não encontrado', 404)
+  assertAccess(user, fb.tccId)
+  if (user.role !== 'orientador' || fb.autorId !== user.id) throw new ApiError('Somente quem escreveu o feedback pode apagá-lo', 403)
+  const doc = fb.documentoId ? documentos.find((d) => d.id === fb.documentoId) : undefined
+  if (doc?.status === 'aprovado') throw new ApiError('Esta versão já foi aprovada e não aceita mais alterações no retorno.', 409)
+  if (doc?.status === 'substituida') throw new ApiError('Esta versão foi substituída por uma mais nova e não aceita mais alterações no retorno.', 409)
+  feedbacks.splice(feedbacks.indexOf(fb), 1)
+  if (doc) recalcularStatusDoDocumento(doc)
   await wait(300)
 }
 
@@ -397,7 +492,8 @@ export async function resolverFeedback(user: User, id: string): Promise<void> {
 export function listBancas(user: User): Promise<Banca[]> {
   const ids = new Set(scope(user).map((t) => t.id))
   const data = bancas
-    .filter((b) => b.tccId && ids.has(b.tccId))
+    // a coordenação também vê as defesas sem TCC no mock (somente leitura), para bater com os números públicos
+    .filter((b) => (b.tccId && ids.has(b.tccId)) || (user.role === 'coordenacao' && !b.tccId))
     .map(toBanca)
   return settle(data, [])
 }
@@ -570,27 +666,62 @@ export async function responderSolicitacao(
 
 /* ------------------------- Inscrição no TCC ------------------------- */
 
-function viewPeriodo(): PeriodoInscricao {
-  const p = periodoInscricao
-  const situacao = daysUntil(p.inicio) > 0 ? 'antes' : daysUntil(p.fim) < 0 ? 'encerrado' : 'aberto'
-  return { ...p, situacao }
+const situacaoDoPeriodo = (p: { inicio: string; fim: string }): PeriodoInscricao['situacao'] =>
+  daysUntil(p.inicio) > 0 ? 'antes' : daysUntil(p.fim) < 0 ? 'encerrado' : 'aberto'
+
+/** O período em vigor: o que está aberto; senão o próximo a abrir; senão o mais recente já encerrado. */
+function periodoAtivo(): { semestre: string; inicio: string; fim: string } | undefined {
+  const porInicio = [...periodosInscricao].sort((a, b) => b.inicio.localeCompare(a.inicio))
+  return (
+    porInicio.find((p) => situacaoDoPeriodo(p) === 'aberto') ??
+    [...porInicio].reverse().find((p) => situacaoDoPeriodo(p) === 'antes') ??
+    porInicio[0]
+  )
 }
 
-/** Público: o período é informação aberta (aparece no calendário e na página inicial). */
+function viewPeriodo(): PeriodoInscricao | undefined {
+  const p = periodoAtivo()
+  return p ? { ...p, situacao: situacaoDoPeriodo(p) } : undefined
+}
+
+/** Público: o período em vigor é informação aberta (aparece no calendário e na página inicial). */
 export function getPeriodoInscricao(): Promise<PeriodoInscricao | null> {
-  return settle<PeriodoInscricao | null>(viewPeriodo(), null)
+  return settle<PeriodoInscricao | null>(viewPeriodo() ?? null, null)
 }
 
+/** Coordenação: histórico de períodos, um por semestre (do mais novo ao mais antigo), com o número de inscritos. */
+export function listPeriodosInscricao(user: User): Promise<PeriodoResumo[]> {
+  if (user.role !== 'coordenacao') return Promise.reject(new ApiError('Somente a coordenação vê o histórico de inscrições', 403))
+  const ativo = periodoAtivo()?.semestre
+  const data = [...periodosInscricao]
+    .sort((a, b) => b.semestre.localeCompare(a.semestre))
+    .map((p) => {
+      const doSemestre = inscricoes.filter((i) => i.status === 'ativa' && i.semestre === p.semestre)
+      return {
+        ...p,
+        situacao: situacaoDoPeriodo(p),
+        ativo: p.semestre === ativo,
+        total: doSemestre.length,
+        tcc1: doSemestre.filter((i) => i.fase === 'TCC1').length,
+        tcc2: doSemestre.filter((i) => i.fase === 'TCC2').length,
+        aguardandoCiencia: doSemestre.filter((i) => !i.cienteEm).length,
+      }
+    })
+  return settle(data, [])
+}
+
+/** Cria o período de um semestre ou, se o semestre já existe, atualiza as datas. */
 export async function savePeriodoInscricao(user: User, input: PeriodoInput): Promise<PeriodoInscricao> {
   if (user.role !== 'coordenacao') throw new ApiError('Somente a coordenação define o período de inscrições', 403)
-  if (!/^\d{4}\/[12]$/.test(input.semestre.trim())) throw new ApiError('Informe o semestre no formato 2027/1.', 422)
-  if (!input.inicio || !input.fim) throw new ApiError('Informe as datas de início e de fim.', 422)
+  const semestre = String(input.semestre ?? '').trim()
+  if (!/^\d{4}\/[12]$/.test(semestre)) throw new ApiError('Informe o semestre no formato 2027/1.', 422)
+  if (!dataIsoValida(input.inicio) || !dataIsoValida(input.fim)) throw new ApiError('Informe as datas de início e de fim (datas que existam no calendário).', 422)
   if (input.fim < input.inicio) throw new ApiError('A data de fim não pode ser anterior à de início.', 422)
-  periodoInscricao.semestre = input.semestre.trim()
-  periodoInscricao.inicio = input.inicio
-  periodoInscricao.fim = input.fim
+  const existente = periodosInscricao.find((p) => p.semestre === semestre)
+  if (existente) Object.assign(existente, { inicio: input.inicio, fim: input.fim })
+  else periodosInscricao.push({ semestre, inicio: input.inicio, fim: input.fim })
   await wait()
-  return viewPeriodo()
+  return { semestre, inicio: input.inicio, fim: input.fim, situacao: situacaoDoPeriodo(input) }
 }
 
 function toInscricao(r: InscricaoRecord, comEmail: boolean): Inscricao {
@@ -614,7 +745,7 @@ function toInscricao(r: InscricaoRecord, comEmail: boolean): Inscricao {
   }
 }
 
-const ativasDoSemestre = () => inscricoes.filter((i) => i.status === 'ativa' && i.semestre === periodoInscricao.semestre)
+const ativasDoSemestre = (semestre: string | undefined = periodoAtivo()?.semestre) => inscricoes.filter((i) => i.status === 'ativa' && i.semestre === semestre)
 
 /** Resolve o orientador informado: professor da plataforma (id) ou nome + e-mail digitados. */
 function resolverOrientador(input: NovaInscricao): Pick<InscricaoRecord, 'orientadorId' | 'orientadorNome' | 'orientadorEmail'> {
@@ -633,10 +764,13 @@ function resolverOrientador(input: NovaInscricao): Pick<InscricaoRecord, 'orient
   return { orientadorId: conhecido?.id, orientadorNome: conhecido?.nome ?? nome, orientadorEmail: email }
 }
 
-function exigirPeriodoAberto(): void {
-  const { situacao, inicio, fim } = viewPeriodo()
+function exigirPeriodoAberto(): { semestre: string } {
+  const periodo = viewPeriodo()
+  if (!periodo) throw new ApiError('A coordenação ainda não definiu o período de inscrições.', 409)
+  const { situacao, inicio, fim } = periodo
   if (situacao === 'antes') throw new ApiError(`As inscrições ainda não abriram (início em ${inicio.split('-').reverse().join('/')}).`, 409)
   if (situacao === 'encerrado') throw new ApiError(`As inscrições foram encerradas em ${fim.split('-').reverse().join('/')}.`, 409)
+  return periodo
 }
 
 export function getMinhaInscricao(user: User): Promise<Inscricao | null> {
@@ -647,11 +781,11 @@ export function getMinhaInscricao(user: User): Promise<Inscricao | null> {
 
 export async function createInscricao(user: User, input: NovaInscricao): Promise<Inscricao> {
   if (user.role !== 'aluno') throw new ApiError('Apenas alunos autenticados se inscrevem', 403)
-  exigirPeriodoAberto()
+  const periodo = exigirPeriodoAberto()
   if (ativasDoSemestre().some((i) => i.alunoId === user.id)) throw new ApiError('Você já está inscrito neste semestre. Edite a inscrição existente.', 409)
   const rec: InscricaoRecord = {
     id: `i${Date.now()}`,
-    semestre: periodoInscricao.semestre,
+    semestre: periodo.semestre,
     alunoId: user.id,
     fase: input.fase,
     ...resolverOrientador(input),
@@ -669,6 +803,7 @@ function inscricaoGerenciavel(user: User, id: string): InscricaoRecord {
   if (!rec) throw new ApiError('Inscrição não encontrada', 404)
   if (user.role !== 'coordenacao') throw new ApiError('Somente a coordenação altera ou cancela inscrições. Procure a coordenação.', 403)
   if (rec.status !== 'ativa') throw new ApiError('Esta inscrição já foi cancelada.', 409)
+  if (rec.semestre !== periodoAtivo()?.semestre) throw new ApiError('Inscrições de semestres anteriores ficam só para consulta.', 409)
   return rec
 }
 
@@ -689,9 +824,10 @@ export async function cancelInscricao(user: User, id: string): Promise<void> {
 }
 
 /** Coordenação: todas as inscrições do semestre. Orientador: as que o indicam (sem o e-mail informado por outros). */
-export function listInscricoes(user: User): Promise<Inscricao[]> {
+export function listInscricoes(user: User, semestre?: string): Promise<Inscricao[]> {
   if (user.role === 'aluno') return Promise.reject(new ApiError('Perfil sem acesso à lista de inscrições', 403))
-  const base = ativasDoSemestre().filter((i) => user.role === 'coordenacao' || i.orientadorId === user.id)
+  // só a coordenação consulta semestres anteriores; o orientador vê sempre o período em vigor
+  const base = ativasDoSemestre(user.role === 'coordenacao' ? semestre : undefined).filter((i) => user.role === 'coordenacao' || i.orientadorId === user.id)
   const data = base
     .map((i) => toInscricao(i, user.role === 'coordenacao'))
     .sort((a, b) => b.criadaEm.localeCompare(a.criadaEm) || a.alunoNome.localeCompare(b.alunoNome, 'pt-BR'))
@@ -711,6 +847,12 @@ export async function marcarCiente(user: User, id: string): Promise<void> {
 export function contarInscricoesNovas(user: User): Promise<number> {
   if (user.role !== 'orientador') return Promise.resolve(0)
   return Promise.resolve(ativasDoSemestre().filter((i) => i.orientadorId === user.id && !i.cienteEm).length)
+}
+
+/** Solicitações de orientação que aguardam resposta do professor (contador no menu). */
+export function contarSolicitacoesPendentes(user: User): Promise<number> {
+  if (user.role !== 'orientador') return Promise.resolve(0)
+  return Promise.resolve(solicitacoes.filter((s) => s.professorId === user.id && s.status === 'pendente').length)
 }
 
 /* --------------- Registro de orientações, linha do tempo e comentários em documentos --------------- */
@@ -835,6 +977,13 @@ export function listAnotacoes(user: User, documentoId: string): Promise<Anotacao
   return settle(data, [])
 }
 
+/** Sem nenhum pedido de correção restante (em trecho ou no retorno geral), a versão volta a aguardar revisão. */
+function recalcularStatusDoDocumento(doc: DocumentoRecord): void {
+  if (doc.status !== 'correcao') return
+  const temCorrecao = feedbacks.some((f) => f.documentoId === doc.id && f.tipo === 'correcao') || anotacoes.some((a) => a.documentoId === doc.id && a.tipo === 'correcao')
+  if (!temCorrecao) doc.status = 'pendente_revisao'
+}
+
 /** Pedir uma correção (em trecho ou no retorno geral) tira a versão de "pendente revisão" e a marca como "correção solicitada". */
 function registrarPedidoDeCorrecao(doc: DocumentoRecord): void {
   if (doc.status === 'pendente_revisao') doc.status = 'correcao'
@@ -933,23 +1082,15 @@ function anotacaoAcessivel(user: User, id: string): AnotacaoRecord {
   return rec
 }
 
-export async function responderAnotacao(user: User, id: string, texto: string): Promise<void> {
-  const rec = anotacaoAcessivel(user, id)
-  if (user.role !== 'aluno' && user.role !== 'orientador') throw new ApiError('Perfil sem permissão para responder comentários', 403)
-  if (texto.trim().length < 2) throw new ApiError('Escreva a resposta.', 422)
-  // o orientador escreveu o comentário: só responde depois que o aluno respondeu
-  if (user.role === 'orientador' && rec.autorId === user.id && !rec.respostas.some((r) => userById(r.autorId).role === 'aluno')) {
-    throw new ApiError('Aguarde a resposta do aluno para responder.', 409)
-  }
-  rec.respostas.push({ id: `ar${Date.now()}`, autorId: user.id, texto: texto.trim(), data: hojeIso() })
-  await wait(250)
-}
-
 /** Só o orientador que escreveu o comentário o apaga (as respostas vão junto). */
 export async function deleteAnotacao(user: User, id: string): Promise<void> {
   const rec = anotacaoAcessivel(user, id)
   if (user.role !== 'orientador' || rec.autorId !== user.id) throw new ApiError('Somente quem escreveu o comentário pode apagá-lo', 403)
+  const doc = documentos.find((d) => d.id === rec.documentoId)
+  if (doc?.status === 'aprovado') throw new ApiError('Esta versão já foi aprovada e não aceita mais alterações nos comentários.', 409)
+  if (doc?.status === 'substituida') throw new ApiError('Esta versão foi substituída por uma mais nova e não aceita mais alterações nos comentários.', 409)
   anotacoes.splice(anotacoes.indexOf(rec), 1)
+  if (doc) recalcularStatusDoDocumento(doc)
   await wait(250)
 }
 
@@ -1001,7 +1142,7 @@ export async function createBanca(user: User, input: NovaBanca): Promise<Banca> 
   if (user.role !== 'aluno') throw new ApiError('Apenas alunos propõem a própria banca', 403)
   assertAccess(user, input.tccId)
   const existente = bancas.find((b) => b.tccId === input.tccId)
-  if (existente && existente.situacao !== 'a_definir') throw new ApiError('Este TCC já tem uma banca proposta ou confirmada.', 409)
+  if (existente && existente.situacao !== 'a_definir') throw new ApiError('Este TCC já tem uma banca proposta ou validada.', 409)
   validarBanca(input)
   const dados = { situacao: 'proposta' as const, data: input.data || undefined, local: input.local?.trim() || undefined, membros: membrosLimpos(input) }
   let rec = existente
@@ -1014,25 +1155,48 @@ export async function createBanca(user: User, input: NovaBanca): Promise<Banca> 
   return toBanca(rec)
 }
 
-function minhaPropostaDeBanca(user: User, id: string) {
+/**
+ * Quem altera uma banca: o aluno do TCC, enquanto ela é só uma proposta; depois que a coordenação confirma, só a coordenação
+ * (que também ajusta bancas propostas ou agendadas). Banca já realizada não muda.
+ */
+function bancaEditavel(user: User, id: string) {
   const rec = bancas.find((b) => b.id === id)
-  if (!rec) throw new ApiError('Banca não encontrada', 404)
-  if (user.role !== 'aluno' || !rec.tccId || !scope(user).some((t) => t.id === rec.tccId)) throw new ApiError('Você não tem permissão para alterar esta banca', 403)
-  if (rec.situacao !== 'proposta') throw new ApiError('Só uma proposta ainda não confirmada pode ser alterada. Procure a coordenação.', 409)
+  if (!rec || !rec.tccId) throw new ApiError('Banca não encontrada', 404)
+  if (user.role === 'coordenacao') {
+    if (rec.situacao !== 'proposta' && rec.situacao !== 'agendada') throw new ApiError('Só bancas propostas ou agendadas podem ser alteradas.', 409)
+    return rec
+  }
+  if (user.role !== 'aluno' || !scope(user).some((t) => t.id === rec.tccId)) throw new ApiError('Você não tem permissão para alterar esta banca', 403)
+  if (rec.situacao !== 'proposta') throw new ApiError('Esta banca já foi validada pela coordenação. Só a coordenação pode alterá-la.', 409)
   return rec
 }
 
 export async function updateBanca(user: User, id: string, input: Omit<NovaBanca, 'tccId'>): Promise<Banca> {
-  const rec = minhaPropostaDeBanca(user, id)
+  const rec = bancaEditavel(user, id)
   validarBanca({ ...input, tccId: rec.tccId as string }, rec.data)
+  if (rec.situacao === 'agendada' && !input.data) throw new ApiError('Uma banca agendada precisa de data.', 422)
   Object.assign(rec, { data: input.data || undefined, local: input.local?.trim() || undefined, membros: membrosLimpos({ ...input, tccId: rec.tccId as string }) })
   await wait()
   return toBanca(rec)
 }
 
-/** Cancela a proposta: o TCC volta a ficar sem banca definida. */
+/** Remove a banca (proposta pelo aluno, ou qualquer uma ainda não realizada para a coordenação): o TCC volta a ficar sem banca definida. */
 export async function cancelBanca(user: User, id: string): Promise<void> {
-  const rec = minhaPropostaDeBanca(user, id)
+  const rec = bancaEditavel(user, id)
   Object.assign(rec, { situacao: 'a_definir' as const, data: undefined, local: undefined, membros: [] })
   await wait(300)
+}
+
+/** A coordenação valida a proposta do aluno: a banca fica "agendada" e passa a aparecer no site público e no calendário. */
+export async function confirmarBanca(user: User, id: string): Promise<Banca> {
+  if (user.role !== 'coordenacao') throw new ApiError('Somente a coordenação valida uma banca', 403)
+  const rec = bancas.find((b) => b.id === id)
+  if (!rec || !rec.tccId) throw new ApiError('Banca não encontrada', 404)
+  if (rec.situacao !== 'proposta') throw new ApiError('Só uma proposta pode ser validada.', 409)
+  if (!rec.data) throw new ApiError('Informe a data da banca (em Editar) antes de validar.', 422)
+  if (rec.data < addDays(0)) throw new ApiError('A data da banca já passou. Atualize a data antes de validar.', 422)
+  if (rec.membros.length < 1) throw new ApiError('Informe os membros da banca antes de validar.', 422)
+  rec.situacao = 'agendada'
+  await wait(300)
+  return toBanca(rec)
 }

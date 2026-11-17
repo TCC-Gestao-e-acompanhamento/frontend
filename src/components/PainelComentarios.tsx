@@ -13,23 +13,22 @@ interface Props {
   dicaSelecao: string
   aviso?: string
   ativa?: string
+  /** Pedido para abrir um comentário por inteiro (ex.: clique no trecho destacado do documento). `k` muda a cada pedido. */
+  abrir?: { id: string; k: number }
   /** A partir de qual largura o painel fica ao lado do documento (e acompanha a rolagem). */
   ladoAlado?: 'lg' | 'xl' | 'livre'
   onVerNoDocumento: (id: string) => void
   onCriar: (d: { tipo: FeedbackTipo; texto: string }) => Promise<void>
   onCancelarSelecao: () => void
-  onResponder: (id: string, texto: string) => Promise<void>
   onResolver: (id: string, resolvida: boolean) => Promise<void>
   /** Quem pode apagar comentários (o orientador, os próprios). Sem esta função, o botão não aparece. */
   onExcluir?: (id: string) => Promise<void>
 }
 
 /** Painel lateral de comentários, igual para documento em texto e em PDF. */
-export function PainelComentarios({ ladoAlado = 'lg', anotacoes, papel, pendente, dicaSelecao, aviso, ativa, onVerNoDocumento, onCriar, onCancelarSelecao, onResponder, onResolver, onExcluir }: Props) {
+export function PainelComentarios({ ladoAlado = 'lg', anotacoes, papel, pendente, dicaSelecao, aviso, ativa, abrir, onVerNoDocumento, onCriar, onCancelarSelecao, onResolver, onExcluir }: Props) {
   const [tipo, setTipo] = useState<FeedbackTipo>('comentario')
   const [texto, setTexto] = useState('')
-  const [respondendo, setRespondendo] = useState<string>()
-  const [resposta, setResposta] = useState('')
   const [ocupado, setOcupado] = useState<string>()
   const [erro, setErro] = useState<string>()
   const [detalheId, setDetalheId] = useState<string>()
@@ -53,11 +52,16 @@ export function PainelComentarios({ ladoAlado = 'lg', anotacoes, papel, pendente
   const detalhe = anotacoes[indice(detalheId)]
   const excluindo = anotacoes[indice(excluindoId)]
 
-  const abrirDetalhe = (id: string, responder = false) => {
+  const abrirDetalhe = (id: string) => {
     setErro(undefined)
     setDetalheId(id)
-    setRespondendo(responder ? id : undefined)
-    setResposta('')
+  }
+  // pedido vindo do documento: abre o comentário na hora, sem efeito nem estado extra (ajuste durante a renderização)
+  const [pedidoVisto, setPedidoVisto] = useState(abrir?.k)
+  if (abrir && abrir.k !== pedidoVisto) {
+    setPedidoVisto(abrir.k)
+    setErro(undefined)
+    setDetalheId(abrir.id)
   }
   const verNoDocumento = (id: string) => {
     setDetalheId(undefined)
@@ -96,8 +100,6 @@ export function PainelComentarios({ ladoAlado = 'lg', anotacoes, papel, pendente
         Apagar
       </Button>
     ) : null
-  /** O orientador escreveu o comentário: só faz sentido responder quando o aluno já respondeu. */
-  const podeResponder = (a: Anotacao) => !orientador || a.respostas.some((r) => r.autorRole === 'aluno')
 
   const emblemas = (a: Anotacao, n: number) => (
     <div className="flex flex-wrap items-center gap-1.5">
@@ -172,7 +174,6 @@ export function PainelComentarios({ ladoAlado = 'lg', anotacoes, papel, pendente
                 </button>
                 <div className="mt-2 flex flex-wrap items-center gap-2">
                   <Button size="sm" variant="neutral" aria-label={`Ver o comentário ${i + 1} no documento`} onClick={() => onVerNoDocumento(a.id)}>Ver no documento</Button>
-                  {podeResponder(a) && <Button size="sm" variant="primary" aria-label={`Responder ao comentário ${i + 1}`} onClick={() => abrirDetalhe(a.id, true)}>Responder</Button>}
                   {botaoSituacao(a)}
                   {botaoApagar(a, i + 1)}
                 </div>
@@ -182,7 +183,7 @@ export function PainelComentarios({ ladoAlado = 'lg', anotacoes, papel, pendente
         )}
       </section>
 
-      <Modal open={!!detalhe} title={detalhe ? `Comentário ${indice(detalhe.id) + 1}` : ''} onClose={() => { setDetalheId(undefined); setRespondendo(undefined) }}>
+      <Modal open={!!detalhe} title={detalhe ? `Comentário ${indice(detalhe.id) + 1}` : ''} onClose={() => setDetalheId(undefined)}>
         {detalhe && (
           <div className="space-y-4 text-sm">
             {emblemas(detalhe, indice(detalhe.id) + 1)}
@@ -209,31 +210,8 @@ export function PainelComentarios({ ladoAlado = 'lg', anotacoes, papel, pendente
 
             {erro && <p role="alert" className="rounded-lg border border-danger/30 bg-danger/10 p-3 text-danger">{erro}</p>}
 
-            {respondendo === detalhe.id && (
-              <div className="space-y-2">
-                <Field label="Sua resposta">{(p) => <Textarea {...p} autoFocus value={resposta} onChange={(e) => setResposta(e.target.value)} className="min-h-20" />}</Field>
-                <div className="flex gap-2">
-                  <Button
-                    size="sm"
-                    loading={ocupado === `r-${detalhe.id}`}
-                    onClick={() =>
-                      executar(`r-${detalhe.id}`, async () => {
-                        await onResponder(detalhe.id, resposta)
-                        setResposta('')
-                        setRespondendo(undefined)
-                      })
-                    }
-                  >
-                    Enviar resposta
-                  </Button>
-                  <Button size="sm" variant="neutral" onClick={() => setRespondendo(undefined)}>Cancelar</Button>
-                </div>
-              </div>
-            )}
-
             <div className="flex flex-wrap items-center gap-2 border-t border-border pt-3">
               <Button size="sm" variant="neutral" onClick={() => verNoDocumento(detalhe.id)}>Ver no documento</Button>
-              {podeResponder(detalhe) && respondendo !== detalhe.id && <Button size="sm" variant="primary" onClick={() => { setRespondendo(detalhe.id); setResposta('') }}>Responder</Button>}
               {botaoSituacao(detalhe)}
               {botaoApagar(detalhe, indice(detalhe.id) + 1)}
               <Button size="sm" variant="neutral" onClick={() => setDetalheId(undefined)}>Fechar</Button>

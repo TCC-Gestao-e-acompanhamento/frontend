@@ -87,3 +87,11 @@ export function proximosSemestres(base: Date = new Date()): string[] {
   }
   return out
 }
+
+/** Máscara de semestre letivo enquanto se digita: só números, no formato 2027/1 (o último dígito é 1 ou 2). */
+export function mascaraSemestre(valor: string): string {
+  const digitos = valor.replace(/\D/g, '').slice(0, 5)
+  if (digitos.length <= 4) return digitos
+  return /[12]/.test(digitos[4]) ? `${digitos.slice(0, 4)}/${digitos[4]}` : digitos.slice(0, 4)
+}
+

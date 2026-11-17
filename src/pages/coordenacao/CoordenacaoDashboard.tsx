@@ -1,38 +1,34 @@
 import { StatusBadge } from '../../components/StatusBadge'
-import { TccTable } from '../../components/TccTable'
-import { DeadlineList } from '../../components/DeadlineList'
 import { useCurrentUser } from '../../auth/useAuth'
 import { ButtonLink, DataBoundary, PageHeader, ProgressBar, SectionCard, StatCard, StatGroup } from '../../design-system'
 import { useAsync } from '../../hooks/useAsync'
 import { formatDate, plural } from '../../lib/format'
-import { getPeriodoInscricao, listBancas, listInscricoes, listPrazosInstitucionais, listTccs } from '../../services/api'
+import { getPeriodoInscricao, listBancas, listInscricoes, listTccs } from '../../services/api'
 
 export default function CoordenacaoDashboard() {
   const user = useCurrentUser()
   const { state, reload } = useAsync(async () => {
-    const [tccs, bancas, prazos, periodo, inscritos] = await Promise.all([
+    const [tccs, bancas, periodo, inscritos] = await Promise.all([
       listTccs(user),
       listBancas(user),
-      listPrazosInstitucionais(),
       getPeriodoInscricao(),
       listInscricoes(user),
     ])
-    return { tccs, bancas, prazos, periodo, inscritos }
+    return { tccs, bancas, periodo, inscritos }
   }, [user.id])
 
   return (
     <>
-      <PageHeader title="Painel da coordenação" description="Visão institucional dos TCCs, prazos e bancas do semestre." />
+      <PageHeader title="Painel da coordenação" description="Visão institucional dos TCCs, inscrições e bancas do semestre." />
       <DataBoundary
         state={state}
         reload={reload}
         isEmpty={(d) => d.tccs.length === 0}
         empty={{ title: 'Nenhum TCC cadastrado', description: 'Os trabalhos aparecem aqui após o cadastro no semestre.' }}
       >
-        {({ tccs, bancas, prazos, periodo, inscritos }) => {
+        {({ tccs, bancas, periodo, inscritos }) => {
           const tcc1 = tccs.filter((t) => t.fase === 'TCC1').length
           const tcc2 = tccs.length - tcc1
-          const pendentes = tccs.filter((t) => t.status !== 'em_andamento')
           const porOrientador = Object.values(
             tccs.reduce<Record<string, { nome: string; total: number }>>((acc, t) => {
               acc[t.orientador.id] ??= { nome: t.orientador.nome, total: 0 }
@@ -57,7 +53,6 @@ export default function CoordenacaoDashboard() {
                 <StatCard label="TCCs cadastrados" value={tccs.length} />
                 <StatCard label="TCC 1 / TCC 2" value={`${tcc1} / ${tcc2}`} />
                 <StatCard label="Bancas agendadas" value={bancas.filter((b) => b.situacao === 'agendada').length} hint={`${bancas.filter((b) => b.situacao === 'a_definir').length} a definir`} tone="success" />
-                <StatCard label="Trabalhos com pendências" value={pendentes.length} tone={pendentes.length ? 'danger' : 'default'} hint="Prazo próximo ou atrasados" />
               </StatGroup>
 
               <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
@@ -83,14 +78,7 @@ export default function CoordenacaoDashboard() {
                 </SectionCard>
               </div>
 
-              <SectionCard title="Pendências" description="Trabalhos com prazo próximo ou atrasados" action={<ButtonLink to="/coordenacao/tccs" variant="ghost" size="sm">Todos os TCCs</ButtonLink>}>
-                {pendentes.length ? <TccTable items={pendentes} basePath="/coordenacao/tccs" showOrientador caption="TCCs com pendências" /> : <p className="text-sm text-ink-muted">Nenhum trabalho com pendências.</p>}
-              </SectionCard>
-
               <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-                <SectionCard title="Prazos institucionais" action={<ButtonLink to="/coordenacao/prazos" variant="ghost" size="sm">Ver tudo</ButtonLink>}>
-                  <DeadlineList items={prazos.slice(0, 3)} />
-                </SectionCard>
                 <SectionCard title="Bancas" action={<ButtonLink to="/coordenacao/bancas" variant="ghost" size="sm">Ver bancas</ButtonLink>}>
                   <ul className="divide-y divide-border">
                     {bancas.map((b) => (

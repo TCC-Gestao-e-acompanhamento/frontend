@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { TccCards } from '../../components/TccCards'
 import { TccTable } from '../../components/TccTable'
 import { useCurrentUser } from '../../auth/useAuth'
 import { DataBoundary, Field, Icon, Input, PageHeader, SectionCard, Select } from '../../design-system'
@@ -20,11 +21,11 @@ export default function TccListPage() {
     <>
       <PageHeader
         title={coord ? 'TCCs cadastrados' : 'Meus orientandos'}
-        description={coord ? 'Todos os trabalhos do semestre, com etapa, orientador e situação.' : 'Situação e etapa atual de cada trabalho que você orienta.'}
+        description={coord ? 'Todos os trabalhos do semestre: tema, aluno, orientador e etapa.' : 'Situação e etapa atual de cada trabalho que você orienta. Clique no cartão para abrir.'}
       />
       <div className="space-y-4">
-        <div className="grid grid-cols-1 gap-4 rounded-card border border-border p-4 sm:grid-cols-[2fr_1fr_1fr]">
-          <Field label="Buscar por aluno, orientador ou título">
+        <div className={`grid grid-cols-1 gap-4 rounded-card border border-border p-4 ${coord ? 'sm:grid-cols-[2fr_1fr]' : 'sm:grid-cols-[2fr_1fr_1fr]'}`}>
+          <Field label={coord ? 'Buscar por tema, aluno ou orientador' : 'Buscar por aluno ou título'}>
             {(p) => (
               <div className="relative">
                 <Icon name="search" size={16} className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-ink-muted" />
@@ -32,7 +33,7 @@ export default function TccListPage() {
               </div>
             )}
           </Field>
-          <Field label="Fase">
+          <Field label="Etapa">
             {(p) => (
               <Select {...p} value={fase} onChange={(e) => setFase(e.target.value as '' | Fase)}>
                 <option value="">Todas</option>
@@ -41,19 +42,21 @@ export default function TccListPage() {
               </Select>
             )}
           </Field>
-          <Field label="Situação">
-            {(p) => (
-              <Select {...p} value={status} onChange={(e) => setStatus(e.target.value as '' | TccStatus)}>
-                <option value="">Todas</option>
-                <option value="em_andamento">Em andamento</option>
-                <option value="atencao">Prazo próximo</option>
-                <option value="atrasado">Atrasado</option>
-              </Select>
-            )}
-          </Field>
+          {!coord && (
+            <Field label="Situação">
+              {(p) => (
+                <Select {...p} value={status} onChange={(e) => setStatus(e.target.value as '' | TccStatus)}>
+                  <option value="">Todas</option>
+                  <option value="em_andamento">Em andamento</option>
+                  <option value="atencao">Prazo próximo</option>
+                  <option value="atrasado">Atrasado</option>
+                </Select>
+              )}
+            </Field>
+          )}
         </div>
 
-        <SectionCard title="Trabalhos">
+        <SectionCard title={coord ? 'Trabalhos' : 'Orientandos'}>
           <DataBoundary
             state={state}
             reload={reload}
@@ -69,7 +72,7 @@ export default function TccListPage() {
                   (!q || `${t.aluno.nome} ${t.orientador.nome} ${t.titulo}`.toLowerCase().includes(q)),
               )
               return filtrados.length ? (
-                <TccTable items={filtrados} basePath={base} showOrientador={coord} caption="Lista de TCCs" />
+                coord ? <TccTable items={filtrados} basePath={base} caption="Lista de TCCs" /> : <TccCards items={filtrados} basePath={base} />
               ) : (
                 <p className="py-4 text-center text-sm text-ink-muted" role="status">Nenhum resultado para os filtros aplicados.</p>
               )

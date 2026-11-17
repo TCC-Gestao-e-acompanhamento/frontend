@@ -6,8 +6,8 @@ export interface NavItem {
   label: string
   icon: IconName
   end?: boolean
-  /** Mostra um contador de itens novos ao lado do rótulo. */
-  contador?: boolean
+  /** Mostra, ao lado do rótulo, quantos itens aguardam o usuário (cada tipo tem a sua cor). */
+  contador?: 'inscricoes' | 'solicitacoes'
 }
 
 export const ROLE_LABEL: Record<Role, string> = {
@@ -33,8 +33,8 @@ export const NAV: Record<Role, NavItem[]> = {
   orientador: [
     { to: '/orientador', label: 'Início', icon: 'home', end: true },
     { to: '/orientador/orientandos', label: 'Orientandos', icon: 'users' },
-    { to: '/orientador/inscricoes', label: 'Inscrições', icon: 'list', contador: true },
-    { to: '/orientador/solicitacoes', label: 'Solicitações', icon: 'send' },
+    { to: '/orientador/inscricoes', label: 'Inscrições', icon: 'list', contador: 'inscricoes' },
+    { to: '/orientador/solicitacoes', label: 'Solicitações', icon: 'send', contador: 'solicitacoes' },
     { to: '/orientador/cronogramas', label: 'Cronogramas', icon: 'calendar' },
     { to: '/orientador/entregas', label: 'Entregas', icon: 'file' },
     { to: '/orientador/bancas', label: 'Bancas', icon: 'flag' },
@@ -45,7 +45,6 @@ export const NAV: Record<Role, NavItem[]> = {
     { to: '/coordenacao/tccs', label: 'TCCs', icon: 'list' },
     { to: '/coordenacao/inscricoes', label: 'Inscrições', icon: 'file' },
     { to: '/coordenacao/orientadores', label: 'Vínculos', icon: 'users' },
-    { to: '/coordenacao/prazos', label: 'Etapas e prazos', icon: 'calendar' },
     { to: '/coordenacao/bancas', label: 'Bancas', icon: 'flag' },
   ],
 }
