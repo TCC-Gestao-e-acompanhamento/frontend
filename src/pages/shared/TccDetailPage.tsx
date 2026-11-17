@@ -1,14 +1,15 @@
 import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { ActivityList } from '../../components/ActivityList'
+import { AtividadeForm } from '../../components/AtividadeForm'
+import { EtapasEditor } from '../../components/EtapasEditor'
 import { DocumentList } from '../../components/DocumentList'
-import { FeedbackForm } from '../../components/FeedbackForm'
 import { FeedbackList } from '../../components/FeedbackList'
 import { LinhaDoTempo } from '../../components/LinhaDoTempo'
 import { OrientacaoForm } from '../../components/OrientacaoForm'
 import { StatusBadge } from '../../components/StatusBadge'
 import { useCurrentUser } from '../../auth/useAuth'
-import { DataBoundary, PageHeader, ProgressBar, SectionCard, Stepper, Tabs } from '../../design-system'
+import { Button, DataBoundary, PageHeader, ProgressBar, SectionCard, Stepper, Tabs } from '../../design-system'
 import { useAsync } from '../../hooks/useAsync'
 import { getTcc, listAtividades, listDocumentos, listFeedbacks, listLinhaDoTempo } from '../../services/api'
 
@@ -19,6 +20,7 @@ export default function TccDetailPage() {
   const user = useCurrentUser()
   const { id = '' } = useParams()
   const [aba, setAba] = useState<Aba>('etapas')
+  const [definindo, setDefinindo] = useState(false)
   const voltar = user.role === 'coordenacao' ? '/coordenacao/tccs' : '/orientador/orientandos'
 
   const { state, reload } = useAsync(async () => {
@@ -68,9 +70,25 @@ export default function TccDetailPage() {
                 { key: 'historico', label: 'Orientações', count: historico.length },
               ]}
             >
-              {aba === 'etapas' && <Stepper etapas={tcc.etapas} />}
-              {aba === 'cronograma' &&
-                (atividades.length ? <ActivityList items={atividades} /> : <p className="text-sm text-ink-muted">Sem atividades no cronograma.</p>)}
+              {aba === 'etapas' &&
+                (definindo ? (
+                  <EtapasEditor tcc={tcc} onCancel={() => setDefinindo(false)} onSaved={() => { setDefinindo(false); reload() }} />
+                ) : (
+                  <div className="space-y-4">
+                    {user.role === 'orientador' && (
+                      <div className="flex justify-end">
+                        <Button variant="secondary" onClick={() => setDefinindo(true)}>Definir etapas</Button>
+                      </div>
+                    )}
+                    <Stepper etapas={tcc.etapas} />
+                  </div>
+                ))}
+              {aba === 'cronograma' && (
+                <div className="space-y-4">
+                  {user.role === 'orientador' && <AtividadeForm tccId={tcc.id} onSaved={reload} />}
+                  {atividades.length ? <ActivityList items={atividades} /> : <p className="text-sm text-ink-muted">Sem atividades no cronograma.</p>}
+                </div>
+              )}
               {aba === 'documentos' &&
                 (documentos.length ? <DocumentList items={documentos} hrefFor={user.role === 'orientador' ? (d) => `/orientador/documentos/${d.id}` : undefined} /> : <p className="text-sm text-ink-muted">O aluno ainda não enviou documentos.</p>)}
               {aba === 'historico' && (
@@ -84,10 +102,7 @@ export default function TccDetailPage() {
                 </>
               )}
               {aba === 'feedbacks' && (
-                <>
-                  {user.role === 'orientador' && <FeedbackForm tccId={tcc.id} onSaved={reload} />}
-                  {feedbacks.length ? <FeedbackList items={feedbacks} /> : <p className="text-sm text-ink-muted">Nenhum feedback registrado.</p>}
-                </>
+                feedbacks.length ? <FeedbackList items={feedbacks} /> : <p className="text-sm text-ink-muted">Nenhum feedback registrado.</p>
               )}
             </Tabs>
           </div>

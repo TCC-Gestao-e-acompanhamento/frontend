@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import { ActivityList } from '../../components/ActivityList'
+import { AtividadeForm } from '../../components/AtividadeForm'
 import { useCurrentUser } from '../../auth/useAuth'
-import { Calendar, DataBoundary, EmptyState, PageHeader, Tabs, type CalendarEvent, type CalendarTone } from '../../design-system'
+import { Button, Calendar, DataBoundary, EmptyState, PageHeader, Tabs, type CalendarEvent, type CalendarTone } from '../../design-system'
 import { useAsync } from '../../hooks/useAsync'
 import { cn, formatDateLong, formatMonth, startOfMonth, toIso } from '../../lib/format'
-import { listAtividades } from '../../services/api'
+import { listAtividades, listTccs } from '../../services/api'
 import type { Atividade, AtividadeStatus } from '../../types'
 
 type Filtro = 'pendentes' | 'concluidas' | 'todas'
@@ -19,8 +20,12 @@ export default function SchedulePage() {
   const [vista, setVista] = useState<Vista>('lista')
   const [mes, setMes] = useState(() => startOfMonth(new Date()))
   const [dia, setDia] = useState(() => toIso(new Date()))
-  const { state, reload } = useAsync(() => listAtividades(user), [user.id])
   const isAluno = user.role === 'aluno'
+  const { state, reload } = useAsync(async () => {
+    const [atividades, orientandos] = await Promise.all([listAtividades(user), isAluno ? Promise.resolve([]) : listTccs(user)])
+    return { atividades, orientandos }
+  }, [user.id])
+  const [criando, setCriando] = useState(false)
 
   return (
     <>
@@ -28,6 +33,8 @@ export default function SchedulePage() {
         title={isAluno ? 'Cronograma' : 'Cronogramas dos orientandos'}
         description={isAluno ? 'Prazos e atividades do seu TCC.' : 'Prazos e atividades de todos os trabalhos que você orienta.'}
         actions={
+          <div className="flex flex-wrap items-center gap-3">
+            {!isAluno && !criando && <Button onClick={() => setCriando(true)}>Nova atividade</Button>}
           <div role="group" aria-label="Forma de visualização" className="flex rounded-lg border border-border p-1">
             {(['lista', 'mes'] as const).map((v) => (
               <button
@@ -41,15 +48,16 @@ export default function SchedulePage() {
               </button>
             ))}
           </div>
+          </div>
         }
       />
       <DataBoundary
         state={state}
         reload={reload}
-        isEmpty={(d) => d.length === 0}
-        empty={{ title: 'Nenhuma atividade no cronograma', description: 'As atividades aparecem quando o cronograma é definido.' }}
+        isEmpty={(d) => d.atividades.length === 0 && !criando}
+        empty={{ title: 'Nenhuma atividade no cronograma', description: isAluno ? 'As atividades aparecem quando o orientador define o cronograma.' : 'Use "Nova atividade" para adicionar reuniões, entregas e marcos.' }}
       >
-        {(d) => {
+        {({ atividades: d, orientandos }) => {
           const pendentes = d.filter((a) => a.status !== 'concluida')
           const concluidas = d.filter((a) => a.status === 'concluida')
           const lista = filtro === 'pendentes' ? pendentes : filtro === 'concluidas' ? concluidas : d
@@ -61,6 +69,12 @@ export default function SchedulePage() {
           const eventos: CalendarEvent[] = lista.map((a) => ({ id: a.id, date: a.prazo, label: a.titulo, tone: TOM[a.status] }))
           const doDia = lista.filter((a) => a.prazo === dia)
           return (
+            <>
+            {criando && (
+              <div className="mb-6">
+                <AtividadeForm orientandos={orientandos} onSaved={() => { setCriando(false); reload() }} onCancel={() => setCriando(false)} />
+              </div>
+            )}
             <Tabs<Filtro>
               label="Filtrar atividades"
               value={filtro}
@@ -94,6 +108,7 @@ export default function SchedulePage() {
                 </div>
               )}
             </Tabs>
+            </>
           )
         }}
       </DataBoundary>
