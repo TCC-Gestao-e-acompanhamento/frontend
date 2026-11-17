@@ -140,13 +140,6 @@ export interface Banca {
   membros: MembroBanca[]
 }
 
-export interface PrazoInstitucional {
-  id: string
-  titulo: string
-  data: string
-  fase: Fase
-}
-
 export interface NovoDocumento {
   tccId: string
   nome: string
@@ -239,8 +232,7 @@ export interface EventoCalendario {
   id: string
   data: string
   titulo: string
-  tipo: 'prazo' | 'defesa' | 'inscricao'
-  fase?: Fase
+  tipo: 'defesa' | 'inscricao'
   detalhe?: string
 }
 

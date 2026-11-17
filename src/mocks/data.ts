@@ -147,6 +147,23 @@ export interface BancaRecord {
   membros: MembroBanca[]
 }
 
+/** Defesa de exemplo (sem TCC no mock): futura fica agendada, passada fica realizada. */
+function defesaExemplo(id: string, aluno: string, titulo: string, dias: number, local: string, presidente: string, examinador1: string, examinador2: string): BancaRecord {
+  return {
+    id,
+    tituloExterno: titulo,
+    alunoExterno: aluno,
+    situacao: dias < 0 ? 'realizada' : 'agendada',
+    data: addDays(dias),
+    local,
+    membros: [
+      { nome: presidente, papel: 'Orientador (presidente)', instituicao: 'UnB' },
+      { nome: examinador1, papel: 'Examinador', instituicao: 'UnB' },
+      { nome: examinador2, papel: 'Examinador', instituicao: 'UnB' },
+    ],
+  }
+}
+
 export const bancas: BancaRecord[] = [
   {
     id: 'b1',
@@ -186,14 +203,13 @@ export const bancas: BancaRecord[] = [
       { nome: 'Prof. Dr. Renato Teixeira', papel: 'Examinador', instituicao: 'UnB' },
     ],
   },
-]
-
-export const prazosInstitucionais = [
-  { id: 'p1', titulo: 'Entrega do projeto de TCC 1', data: addDays(14), fase: 'TCC1' as const },
-  { id: 'p2', titulo: 'Entrega da versão para a banca', data: addDays(30), fase: 'TCC2' as const },
-  { id: 'p3', titulo: 'Início do período de defesas', data: addDays(45), fase: 'TCC2' as const },
-  { id: 'p4', titulo: 'Fim do período de defesas', data: addDays(60), fase: 'TCC2' as const },
-  { id: 'p5', titulo: 'Entrega da versão final corrigida', data: addDays(75), fase: 'TCC2' as const },
+  // Outras defesas abertas ao público (de alunos que não aparecem nos demais exemplos).
+  defesaExemplo('b5', 'Júlia Ramos', 'Triagem de sintomas por texto com processamento de linguagem natural', 3, 'Auditório da Faculdade de Tecnologia, sala 3', 'Prof. Dr. Carlos Andrade', 'Profa. Dra. Helena Prado', 'Prof. Dr. Otávio Lemos'),
+  defesaExemplo('b6', 'Tiago Mendes', 'Desempenho de bancos NoSQL em cargas de leitura e escrita mistas', 9, 'Sala virtual (link divulgado pela coordenação)', 'Profa. Dra. Helena Prado', 'Prof. Dr. Renato Teixeira', 'Profa. Dra. Mirela Tavares'),
+  defesaExemplo('b7', 'Larissa Duarte', 'Detecção de notícias falsas em português com modelos de linguagem', 14, 'Auditório da Faculdade de Tecnologia, sala 12', 'Prof. Dr. Carlos Andrade', 'Prof. Dr. Otávio Lemos', 'Profa. Dra. Ana Beltrão'),
+  defesaExemplo('b8', 'Bruno Carvalho', 'Gamificação no ensino de lógica de programação', 18, 'Laboratório de Informática, bloco B', 'Profa. Dra. Mirela Tavares', 'Prof. Dr. Renato Teixeira', 'Profa. Dra. Helena Prado'),
+  defesaExemplo('b9', 'Camila Torres', 'Monitoramento do consumo de energia residencial com sensores de baixo custo', -10, 'Auditório da Faculdade de Tecnologia, sala 3', 'Prof. Dr. Otávio Lemos', 'Prof. Dr. Carlos Andrade', 'Profa. Dra. Mirela Tavares'),
+  defesaExemplo('b10', 'Rafael Nunes', 'Assistente virtual para o atendimento de calouros', -20, 'Sala virtual (link divulgado pela coordenação)', 'Profa. Dra. Helena Prado', 'Prof. Dr. Renato Teixeira', 'Prof. Dr. Otávio Lemos'),
 ]
 
 /* ---------- Orientação: catálogo, perfis públicos e solicitações (dados fictícios) ---------- */

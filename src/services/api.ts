@@ -20,7 +20,6 @@ import {
   orientacoes,
   perfisProfessores,
   periodosInscricao,
-  prazosInstitucionais,
   solicitacoes,
   tccs,
   users,
@@ -192,15 +191,8 @@ function periodoDoCalendario(): EventoCalendario[] {
   ]
 }
 
-/** Prazos institucionais e defesas públicas num só calendário (somente dados públicos). */
+/** Defesas públicas e período de inscrições num só calendário (somente dados públicos). */
 export function listEventosPublicos(): Promise<EventoCalendario[]> {
-  const prazos: EventoCalendario[] = prazosInstitucionais.map((p) => ({
-    id: p.id,
-    data: p.data,
-    titulo: p.titulo,
-    tipo: 'prazo',
-    fase: p.fase,
-  }))
   const defesas: EventoCalendario[] = bancas
     .filter((b) => (b.situacao === 'agendada' || b.situacao === 'realizada') && b.data)
     .map(toBanca)
@@ -214,7 +206,7 @@ export function listEventosPublicos(): Promise<EventoCalendario[]> {
   const inscr: EventoCalendario[] = [
     ...periodoDoCalendario(),
   ]
-  const data = [...prazos, ...defesas, ...inscr].sort((a, b) => a.data.localeCompare(b.data))
+  const data = [...defesas, ...inscr].sort((a, b) => a.data.localeCompare(b.data))
   return settle(data, [])
 }
 
@@ -500,7 +492,8 @@ export async function resolverFeedback(user: User, id: string): Promise<void> {
 export function listBancas(user: User): Promise<Banca[]> {
   const ids = new Set(scope(user).map((t) => t.id))
   const data = bancas
-    .filter((b) => b.tccId && ids.has(b.tccId))
+    // a coordenação também vê as defesas sem TCC no mock (somente leitura), para bater com os números públicos
+    .filter((b) => (b.tccId && ids.has(b.tccId)) || (user.role === 'coordenacao' && !b.tccId))
     .map(toBanca)
   return settle(data, [])
 }
