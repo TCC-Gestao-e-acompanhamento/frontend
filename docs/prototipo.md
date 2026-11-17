@@ -373,4 +373,9 @@ ou recarregar a página reinicia esses dados, e então um documento enviado ante
   O período em vigor é o que os alunos usam para se inscrever e o que aparece no calendário público.
 - **Aviso ao orientador** na lista de inscritos: só "Ciente" ou "Aguardando ciência" (saíram "No sistema" e "Por e-mail", também do CSV).
 - **Bancas**: o botão da coordenação agora é **Validar** (antes "Confirmar banca").
+- **Versão substituída**: ao abrir uma versão Substituída, o orientador vê um aviso ("Há um arquivo mais recente") com os botões "Abrir a versão N" e "Continuar nesta versão". Vale para o orientador; o aviso aparece de novo se ele reabrir o documento. O botão **Definir etapas** fica à esquerda da aba Etapas.
+- **Concluir etapa** (hipótese 41): na etapa atual há o botão **Concluir etapa**, com confirmação, tanto para o aluno (Etapas do TCC) quanto para o
+  orientador (aba Etapas do orientando); a coordenação só acompanha. A etapa fica "Concluída em dd/mm/aaaa por Nome" e a seguinte passa a ser a atual;
+  concluir a última deixa o trabalho com todas as etapas concluídas (progresso 100%). Não há "desfazer": o orientador corrige pela ação **Definir etapas**
+  (marcando a etapa atual). A conclusão pelo aluno não precisa de aprovação do orientador neste protótipo.
 
