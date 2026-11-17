@@ -337,3 +337,40 @@ ou recarregar a página reinicia esses dados, e então um documento enviado ante
   correção pendente. Quem escreveu é o único que edita.
 - A aprovação do documento não é aprovação institucional do TCC (etapas, banca e nota continuam fora do protótipo).
 
+## Ajustes de 17/11 (aluno, orientador, coordenação)
+
+- **Comentários sem resposta**: a função de responder um comentário saiu (botão, formulário e API). Respostas que já existiam nos dados de exemplo
+  continuam aparecendo, só para leitura. O aluno marca como resolvido; o orientador reabre. (Substitui o que está dito antes sobre responder.)
+- **Clique no trecho do PDF**: clicar em qualquer parte do trecho destacado (não só no número) abre o comentário inteiro; o trecho realça e o
+  cursor vira mão ao passar o mouse. Arrastar para selecionar texto não conta como clique.
+- **Banca** (hipótese 38, procedimento a confirmar): o aluno edita ou remove a própria proposta até a coordenação confirmar. A coordenação, em
+  Bancas, **confirma** a proposta (exige data futura e membros; a banca vira Agendada e fica pública no site e no calendário), **edita** e **remove**
+  (propostas e agendadas; banca realizada não muda). Depois de confirmada, o aluno não altera mais e a API devolve 409.
+- **Menu do orientador**: Solicitações ganhou contador de pedidos aguardando resposta (azul); Inscrições segue com o contador de novas (laranja).
+  Os dois atualizam ao responder.
+- **Retorno geral sobre esta versão**: lápis (editar) e lixeira (excluir, com confirmação) no topo do cartão, só com ícone e dica. Ao excluir, o
+  formulário volta. Se a versão estava em Correção solicitada e já não há nenhum pedido de correção (retorno geral ou comentário em trecho), ela
+  volta a Pendente revisão.
+- Versão aprovada ou substituída também não permite apagar comentários em trechos (o histórico não muda); novos comentários em trechos continuam possíveis.
+
+## Ajustes: etapas, cronograma, inscrições por semestre e coordenação
+
+- **Dicas (tooltip)**: Baixar, Tela cheia, zoom e os ícones do retorno geral usam uma dica própria (`Tooltip`), que aparece ao passar o mouse e ao
+  focar com o teclado. O `title` nativo não aparecia em alguns navegadores; o rótulo para leitor de tela segue no `aria-label`.
+- **Definir etapas** (orientador, aba Etapas do orientando; hipótese 39): o orientador nomeia as etapas, escolhe se entram no TCC 1 ou no TCC 2,
+  põe a data (opcional) e marca a etapa atual do aluno; pode reordenar, remover e adicionar (1 a 12). Regras da API: nomes únicos, etapas do TCC 1 antes
+  das do TCC 2, datas em ordem. Aluno e coordenação veem as etapas e as datas. A lista padrão de 8 etapas vale até o orientador mudar.
+- **Cronograma**: o orientador cria reunião, entrega ou marco em **Nova atividade** (página Cronogramas, escolhendo o orientando, e na aba Cronograma
+  do orientando). Data a partir de hoje; título de 3 a 120 letras. Editar e excluir atividade ficam para depois.
+- **Orientandos**: a lista virou cartões; o cartão inteiro abre o trabalho. Na aba Feedbacks do orientando saiu o formulário de novo feedback (o retorno
+  agora é dado dentro de cada versão de documento).
+- **Coordenação, TCCs cadastrados**: tabela só com tema, aluno, orientador e etapa (TCC 1 ou 2); filtros de busca e de etapa. Saíram progresso e situação.
+- **Coordenação, painel**: saíram "Pendências", "Trabalhos com pendências" e "Prazos institucionais". A página **Etapas e prazos** foi removida (o
+  calendário público segue mostrando os prazos institucionais).
+- **Coordenação, inscrições por semestre** (hipótese 40): histórico com um período por semestre (datas, situação, inscritos, TCC 1 · TCC 2).
+  **Adicionar semestre** já vem com o semestre atual e uma máscara 0000/0 (o último dígito é 1 ou 2); semestre que já existe é editado na tabela.
+  "Inscritos" mostra a lista de cada semestre; só o período em vigor (aberto, ou o próximo, ou o mais recente) permite editar ou cancelar inscrição.
+  O período em vigor é o que os alunos usam para se inscrever e o que aparece no calendário público.
+- **Aviso ao orientador** na lista de inscritos: só "Ciente" ou "Aguardando ciência" (saíram "No sistema" e "Por e-mail", também do CSV).
+- **Bancas**: o botão da coordenação agora é **Validar** (antes "Confirmar banca").
+
