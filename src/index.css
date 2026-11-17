@@ -20,6 +20,10 @@
 
   --color-success: #006633;
   --color-warning: #b45309;
+  /* Amarelo suave para ações de edição: fundo claro, texto escuro (contraste alto) */
+  --color-warning-soft: #fef3c7;
+  --color-warning-soft-hover: #fde68a;
+  --color-warning-ink: #78350f;
   --color-danger: #b91c1c;
 
   --color-surface: #ffffff;
