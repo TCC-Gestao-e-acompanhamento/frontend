@@ -3,8 +3,8 @@ import { AuthProvider } from './auth/AuthContext'
 import { PublicLayout } from './layouts/PublicLayout'
 import { RequireRole } from './routes/RequireRole'
 import AlunoDashboard from './pages/aluno/AlunoDashboard'
+import AlunoBancaPage from './pages/aluno/BancaPage'
 import EtapasPage from './pages/aluno/EtapasPage'
-import FeedbacksPage from './pages/aluno/FeedbacksPage'
 import CoordenacaoDashboard from './pages/coordenacao/CoordenacaoDashboard'
 import CoordInscricoesPage from './pages/coordenacao/InscricoesPage'
 import OrientadoresPage from './pages/coordenacao/OrientadoresPage'
@@ -13,6 +13,7 @@ import OrientadorDashboard from './pages/orientador/OrientadorDashboard'
 import BancasPublicasPage from './pages/public/BancasPublicasPage'
 import CalendarioPage from './pages/public/CalendarioPage'
 import MinhasSolicitacoesPage from './pages/aluno/MinhasSolicitacoesPage'
+import HistoricoPage from './pages/aluno/HistoricoPage'
 import InscricaoPage from './pages/aluno/InscricaoPage'
 import SolicitarOrientacaoPage from './pages/aluno/SolicitarOrientacaoPage'
 import InscricoesRecebidasPage from './pages/orientador/InscricoesPage'
@@ -25,13 +26,14 @@ import HomePage from './pages/public/HomePage'
 import LoginPage from './pages/public/LoginPage'
 import BancasPage from './pages/shared/BancasPage'
 import DocumentsPage from './pages/shared/DocumentsPage'
+import DocumentoPage from './pages/shared/DocumentoPage'
 import SchedulePage from './pages/shared/SchedulePage'
 import TccDetailPage from './pages/shared/TccDetailPage'
 import TccListPage from './pages/shared/TccListPage'
 
 export default function App() {
   return (
-    <BrowserRouter>
+    <BrowserRouter basename={import.meta.env.BASE_URL.replace(/\/$/, '')}>
       <AuthProvider>
         <Routes>
           {/* Área pública */}
@@ -54,8 +56,11 @@ export default function App() {
             <Route path="etapas" element={<EtapasPage />} />
             <Route path="cronograma" element={<SchedulePage />} />
             <Route path="documentos" element={<DocumentsPage />} />
-            <Route path="feedbacks" element={<FeedbacksPage />} />
-            <Route path="banca" element={<BancasPage />} />
+            <Route path="documentos/:id" element={<DocumentoPage />} />
+            <Route path="historico" element={<HistoricoPage />} />
+            {/* o antigo "Feedbacks" virou parte de Documentos: links antigos continuam funcionando */}
+            <Route path="feedbacks" element={<Navigate to="/aluno/documentos" replace />} />
+            <Route path="banca" element={<AlunoBancaPage />} />
           </Route>
 
           <Route path="orientador" element={<RequireRole role="orientador" />}>
@@ -68,6 +73,7 @@ export default function App() {
             <Route path="perfil" element={<PerfilPublicoPage />} />
             <Route path="cronogramas" element={<SchedulePage />} />
             <Route path="entregas" element={<DocumentsPage />} />
+            <Route path="documentos/:id" element={<DocumentoPage />} />
             <Route path="bancas" element={<BancasPage />} />
           </Route>
 

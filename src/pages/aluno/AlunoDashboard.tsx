@@ -98,12 +98,12 @@ export default function AlunoDashboard() {
                   title="Documentos e entregas"
                   action={<ButtonLink to="/aluno/documentos" variant="ghost" size="sm">Abrir documentos</ButtonLink>}
                 >
-                  {documentos.length === 0 ? <p className="text-sm text-ink-muted">Você ainda não enviou documentos.</p> : <DocumentList items={documentos.slice(0, 3)} />}
+                  {documentos.length === 0 ? <p className="text-sm text-ink-muted">Você ainda não enviou documentos.</p> : <DocumentList items={documentos.slice(0, 3)} hrefFor={(d) => `/aluno/documentos/${d.id}`} />}
                 </SectionCard>
 
                 <SectionCard
                   title="Últimos feedbacks"
-                  action={<ButtonLink to="/aluno/feedbacks" variant="ghost" size="sm">Ver todos</ButtonLink>}
+                  action={<ButtonLink to="/aluno/documentos" variant="ghost" size="sm">Ver nos documentos</ButtonLink>}
                 >
                   {feedbacks.length === 0 ? <p className="text-sm text-ink-muted">Nenhum feedback recebido ainda.</p> : <FeedbackList items={feedbacks.slice(0, 2)} />}
                 </SectionCard>

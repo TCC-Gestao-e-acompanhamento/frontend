@@ -70,6 +70,7 @@ function SolicitacaoDetail({ id }: { id: string }) {
             <SectionCard title="Proposta">
               <dl className="space-y-4 text-sm">
                 <div><dt className="text-ink-muted">Área de interesse</dt><dd className="font-medium">{s.area}</dd></div>
+                <div><dt className="text-ink-muted">Semestre pretendido</dt><dd className="font-medium">{s.semestre}</dd></div>
                 <div><dt className="text-ink-muted">Descrição</dt><dd className="whitespace-pre-line">{s.descricao}</dd></div>
                 {s.mensagem && <div><dt className="text-ink-muted">Mensagem ao professor</dt><dd className="whitespace-pre-line">{s.mensagem}</dd></div>}
                 <div><dt className="text-ink-muted">Enviada em</dt><dd>{formatDate(s.enviadaEm)}</dd></div>

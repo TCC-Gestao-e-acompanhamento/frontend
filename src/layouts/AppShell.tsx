@@ -6,7 +6,7 @@ import { contarInscricoesNovas } from '../services/api'
 import { cn, initials } from '../lib/format'
 import { NAV, ROLE_LABEL } from '../routes/navigation'
 import { Brand } from './Brand'
-import { SimulateStates } from './SimulateStates'
+// import { SimulateStates } from './SimulateStates' // protótipo: desligado para tirar prints; descomente para voltar o seletor de estados
 import { ShellContext } from './shellContext'
 
 /** Layout único da área logada; a navegação muda conforme o perfil. */
@@ -111,7 +111,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               <Icon name="arrow" />
               Ir para o site público
             </Link>
-            <SimulateStates />
+            {/* <SimulateStates /> */}
           </div>
         </aside>
 

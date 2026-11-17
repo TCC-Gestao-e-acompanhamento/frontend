@@ -4,6 +4,8 @@ interface ModalProps {
   open: boolean
   title: string
   onClose: () => void
+  /** Enquanto verdadeiro, Esc, clique fora e fechamento ficam desligados (ex.: operação em andamento). */
+  bloqueado?: boolean
   children: ReactNode
 }
 
@@ -11,7 +13,7 @@ interface ModalProps {
  * Modal sobre <dialog> nativo: foco preso, Esc fecha e leitores de tela
  * reconhecem como diálogo modal. O conteúdo é montado só enquanto aberto.
  */
-export function Modal({ open, title, onClose, children }: ModalProps) {
+export function Modal({ open, title, onClose, bloqueado = false, children }: ModalProps) {
   const ref = useRef<HTMLDialogElement>(null)
 
   useEffect(() => {
@@ -26,7 +28,8 @@ export function Modal({ open, title, onClose, children }: ModalProps) {
       ref={ref}
       aria-labelledby="modal-title"
       onClose={onClose}
-      onClick={(e) => e.target === ref.current && onClose()}
+      onCancel={(e) => bloqueado && e.preventDefault()}
+      onClick={(e) => e.target === ref.current && !bloqueado && onClose()}
       className="m-auto w-[min(32rem,calc(100%-2rem))] rounded-card border border-border bg-surface p-0 text-ink backdrop:bg-ink/40"
     >
       {open && (

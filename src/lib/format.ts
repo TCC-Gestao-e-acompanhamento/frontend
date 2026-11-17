@@ -71,3 +71,19 @@ export function monthTitle(d: Date): string {
 export function formatDateLong(iso: string): string {
   return parseDate(iso).toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' })
 }
+
+/** Semestre letivo de uma data: março a julho = 1; agosto a dezembro (e janeiro/fevereiro) = 2. Ex.: "2026/2". */
+export function semestreDe(data: Date): string {
+  const m = data.getMonth()
+  return m >= 2 && m <= 6 ? `${data.getFullYear()}/1` : `${m <= 1 ? data.getFullYear() - 1 : data.getFullYear()}/2`
+}
+
+/** O semestre atual e os dois seguintes, para escolher o semestre pretendido. */
+export function proximosSemestres(base: Date = new Date()): string[] {
+  const out = [semestreDe(base)]
+  for (let i = 0; i < 2; i++) {
+    const [ano, parte] = out[out.length - 1].split('/').map(Number)
+    out.push(parte === 1 ? `${ano}/2` : `${ano + 1}/1`)
+  }
+  return out
+}

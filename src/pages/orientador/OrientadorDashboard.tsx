@@ -39,7 +39,7 @@ export default function OrientadorDashboard() {
         {({ tccs, atividades, documentos, solicitacoes, inscricoes }) => {
           const inscNovas = inscricoes.filter((i) => !i.ciente)
           const novas = solicitacoes.filter((s) => s.status === 'pendente')
-          const analise = documentos.filter((d) => d.status === 'em_analise')
+          const analise = documentos.filter((d) => d.status === 'pendente_revisao')
           const comPendencia = tccs.filter((t) => t.status !== 'em_andamento')
           const proximos = atividades.filter((a) => a.status !== 'concluida').slice(0, 4)
           return (

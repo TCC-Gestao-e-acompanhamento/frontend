@@ -201,3 +201,139 @@ Hipóteses a confirmar: (16) um período único por semestre vale para TCC 1 e T
 `unb.br` (inclui subdomínios); (18) a inscrição não exige aprovação da coordenação nesta versão; (19) cancelar mantém o
 registro (status cancelada) mas some das listas, e o aluno pode se inscrever de novo se o período estiver aberto; (20) estar "ciente" não é aceite institucional; (21) o aluno pode se
 inscrever sem ter feito solicitação de orientação na plataforma.
+
+## Registro de orientações e comentários em documentos
+
+Responde à hipótese H4 (documentos, feedbacks e histórico das orientações reunidos no sistema).
+
+- **Registro de orientações** (orientador): na aba "Orientações" do detalhe do TCC (`/orientador/orientandos/:id`), o
+  orientador registra a reunião (data, presencial ou online, o que foi tratado, combinados e próximo encontro). Só reuniões já
+  realizadas (data de hoje ou anterior); só o orientador do TCC registra (aluno e coordenação consultam).
+- **Histórico** (`/aluno/historico` e a mesma aba para orientador e coordenação): linha do tempo única com reuniões, entregas,
+  feedbacks e comentários em documentos, do mais recente ao mais antigo, agrupada por mês.
+- **Documento com comentários** (`/aluno/documentos/:id` e `/orientador/documentos/:id`): o orientador seleciona um trecho
+  (ou comenta o parágrafo inteiro) e escreve um comentário ou pede correção; o trecho fica destacado e numerado (a cor não é o
+  único sinal). O aluno vê os destaques, responde e marca como resolvido; o orientador pode reabrir. A lista de documentos
+  mostra quantos comentários há e quantos estão abertos.
+- **Regras na API simulada** (o backend deve repetir): só o orientador do TCC comenta; um trecho não pode ter dois comentários
+  sobrepostos (409); posições validadas contra o texto (422); só aluno e orientador respondem; só o aluno marca como resolvido e
+  só o orientador reabre; coordenação não acessa o visualizador.
+
+**Editar o documento no sistema?** O protótipo faz *revisão* (comentar trechos), não *edição*: o texto fica protegido e o
+aluno envia uma nova versão. Edição colaborativa (estilo Google Docs) exige editor de texto rico e backend em tempo real, fora
+do escopo atual. Exibir PDFs reais com marcações exigiria uma biblioteca de leitura de PDF (ex.: pdf.js), que precisa de
+aprovação antes de entrar no projeto. Hoje o conteúdo exibido é um texto de exemplo.
+
+Hipóteses a confirmar: (22) o orientador pode comentar qualquer versão enviada ou só a mais recente; (23) o registro de
+reunião pode ser editado ou apagado depois; (24) o aluno pode pedir ao orientador para reabrir/ajustar um comentário; (25) a
+coordenação precisa ver os comentários dos documentos.
+
+### Situação das hipóteses H1–H4 (Lean UX)
+
+| Hipótese | Situação no protótipo |
+|---|---|
+| H1: normas/procedimentos + lista de orientadores | Lista de orientadores completa. **Falta a página de normas e procedimentos do TCC** (depende do conteúdo oficial) |
+| H2: solicitar e responder orientação | Completo |
+| H3: etapas + cronograma + prazos | Completo (etapas genéricas, a validar) |
+| H4: documentos + feedbacks + histórico | Completo, incluindo registro de orientações e comentários em trechos |
+
+## Documentos em PDF com comentários
+
+- **Envio de PDF**: o aluno envia um PDF real (até 20 MB; só `.pdf`) em Documentos. No protótipo o arquivo fica só na memória
+  do navegador (some ao recarregar); no sistema final vai para o servidor.
+- **Comentários no PDF** (`/aluno/documentos/:id`, `/orientador/documentos/:id`): o orientador seleciona um trecho de texto, ou
+  segura **Alt** e arrasta para marcar uma área (figuras, gráficos ou PDF digitalizado), e escreve um comentário ou pede correção.
+  O destaque ganha um número igual ao do painel lateral. O aluno vê os destaques, responde e marca como resolvido; o orientador
+  reabre. O painel de comentários é o mesmo do documento em texto.
+- **PDFs de exemplo**: `public/exemplos/` (gerados com LaTeX). Todos os documentos de exemplo abrem no mesmo visualizador de PDF,
+  para aluno e orientador (monografias usam `monografia-exemplo.pdf`; os demais, `capitulo-exemplo.pdf`). Os comentários de
+  exemplo já vêm posicionados no PDF. O visualizador em texto (`DocumentoAnotavel`) fica só como reserva para documento sem arquivo.
+- **Biblioteca**: `pdfjs-dist` 4.10.38 (Apache-2.0), usado direto, com visualizador próprio (`src/components/pdf/`). A versão
+  anterior usava `react-pdf-highlighter`, trocada porque os destaques não apareciam de forma confiável e porque ela cria uma raiz
+  React por página, o que trava com PDFs longos. O worker do pdf.js é servido pelo próprio site (sem CDN) e o visualizador só é
+  baixado quando um PDF é aberto. **Desvio do combinado**: a biblioteca aprovada era a `react-pdf-highlighter`; o `pdfjs-dist` é
+  a base dela e já era dependência indireta. Se preferir voltar, é só pedir. O `npm audit` apontava falhas no `tar`, resolvidas
+  com `overrides` no `package.json`. Antes de produção, reavaliar a versão do pdf.js, porque o sistema final vai abrir PDFs
+  enviados por usuários.
+- **PDFs longos (100 páginas ou mais)**: só as páginas perto da área visível são desenhadas (imagem e texto selecionável); as
+  outras ficam como espaço vazio do tamanho certo e liberam memória ao sair de perto. Teste feito com um PDF de 100 páginas:
+  ~2 páginas desenhadas por vez, salto para o meio do documento em ~0,4 s, cerca de 41 MB de memória do JavaScript.
+- **Destaques**: os trechos comentados ficam coloridos (azul = comentário, laranja = correção, verde = resolvido) e ganham o
+  número do comentário; clicar no número leva ao comentário no painel, e "Ver no documento" rola até o trecho. As posições são
+  guardadas em pontos do PDF, junto do tamanho da página, então valem em qualquer zoom.
+- **Marcar área**: segurar Alt e arrastar, para figuras e PDF digitalizado; guarda um recorte da área. (Não há botão na barra; no
+  celular, sem tecla Alt, só a seleção de texto está disponível. Hipótese 35: a marcação de área precisa de um jeito próprio no toque.)
+- **Barra do PDF**: Baixar e Tela cheia só com ícone, com dica ao passar o mouse e rótulo para leitor de tela.
+- **Painel de comentários**: lista com rolagem própria. Botões com cor de fundo (azul = responder, verde = marcar como resolvido,
+  cinza = ver no documento e reabrir, contorno com texto vermelho = apagar). Status **Aberto em verde**, Resolvido em cinza (o
+  destaque de comentário resolvido no PDF também fica cinza). O orientador, autor do comentário, só vê "Responder" depois que o aluno responde. O cartão mostra o texto resumido; **clicar nele abre o comentário inteiro** (trecho, texto,
+  respostas, ações). O orientador exclui os próprios comentários (lixeira, com confirmação; as respostas vão junto). Hipótese
+  (34): só quem escreveu apaga, e o aluno não vê o histórico de comentários excluídos.
+- **Limitação conhecida**: PDF com páginas de tamanhos diferentes usa o tamanho da página 1 para o ajuste de largura e para "Página X de N".
+- **Limitações**: a seleção de trecho no PDF depende do mouse ou do toque (o texto de PDF não é navegável por teclado como o
+  documento em texto); PDF só com imagem exige a marcação por área; comentários ficam presos à versão do arquivo.
+- **Comentários mantidos**: o orientador comenta uma versão específica; a dúvida sobre comentar versões antigas continua (hipótese 22).
+
+Hipóteses a confirmar: (26) tamanho máximo do PDF e formatos aceitos além de PDF; (27) o aluno pode substituir um PDF já enviado
+ou só enviar nova versão; (28) o orientador precisa baixar o PDF com as marcações (hoje os comentários vivem só no sistema).
+
+## Ajustes no perfil do aluno (16/11)
+
+- **Menu**: removido "Buscar orientador" (a busca continua pública, e o aluno chega a ela pela tela Solicitações e pelo site público).
+- **Inscrição**: as opções TCC 1 / TCC 2 ficaram só com o nome, sem a descrição.
+- **Solicitar orientação**: novo campo obrigatório "Semestre pretendido" (semestre atual e os dois seguintes), mostrado também no
+  detalhe e na lista de solicitações do aluno e do orientador.
+- **Banca proposta pelo aluno** (`/aluno/banca`): o aluno informa membros (de 1 a 6, com papel e instituição) e, opcionalmente, data e
+  local. A banca fica como **"Proposta do aluno"**: não é pública (só bancas agendadas ou realizadas aparecem no site e no calendário)
+  e o aluno pode editar ou cancelar (com confirmação) enquanto for proposta. Depois de confirmada, só a coordenação altera.
+  Orientador e coordenação já veem a proposta na lista de bancas. **Ainda não existe a ação da coordenação para confirmar a banca**,
+  porque o procedimento institucional precisa ser confirmado.
+- **PDF**: barra de controles com zoom − / + (e "Ajustar à largura"), **Baixar** e **Tela cheia**. A tela cheia inclui o painel de
+  comentários, então dá para marcar e comentar sem sair dela (Esc ou o botão fecham). A seleção de texto no PDF deixou de pintar o
+  texto por cima da página (a cor de seleção do tema afetava a camada invisível de texto do pdf.js).
+
+Hipóteses a confirmar: (29) o aluno pode propor banca em TCC 1 ou só em TCC 2; (30) quantos membros e quais papéis a banca exige;
+(31) quem confirma a banca (coordenação?) e o que muda no calendário público depois; (32) o orientador precisa aprovar a proposta antes
+da coordenação; (33) o semestre pretendido deve acompanhar o período de inscrição (ex.: sugerir só o semestre do período aberto).
+
+**Nota de uso**: os dados do protótipo ficam só na memória do navegador. Alterar o código com o site aberto (modo de desenvolvimento)
+ou recarregar a página reinicia esses dados, e então um documento enviado antes pode "não ser encontrado" ao comentar.
+
+## Documentos e feedbacks em um fluxo só (aluno)
+
+- O item **Feedbacks** saiu do menu do aluno; `/aluno/feedbacks` redireciona para Documentos. Todo o retorno do orientador fica no documento:
+  a lista de **Documentos** mostra, por versão, comentários abertos e correções pendentes; a **linha inteira** abre o documento.
+- No documento: bloco **Retorno geral sobre esta versão** (correções e comentários sem trecho; o aluno marca a correção como resolvida
+  ali) e, abaixo, o PDF com os comentários em trechos. O painel inicial do aluno aponta para Documentos.
+- Estados abertos em verde (Aberto, Pendente) e concluídos em cinza (Resolvido, Resolvida), nas duas listas.
+- O seletor "Protótipo · simular estado" está **comentado** em `AppShell.tsx` e `PublicLayout.tsx` (para prints); descomente as duas
+  linhas e o `import` para voltar. Os estados continuam acessíveis por `?mock=loading|error|empty` na URL.
+
+## Baixar o PDF com comentários
+
+- O botão Baixar (só ícone, com dica) abre um modal: **com comentários** ou **sem comentários** (o original). Com comentários fica
+  desabilitado quando não há nenhum.
+- O PDF com comentários é gerado no navegador, sem alterar o original: trechos destacados (azul = comentário, laranja = correção,
+  cinza = resolvido), número na margem esquerda, uma **nota do PDF** (anotação padrão) na margem direita com autor, texto e respostas,
+  e uma **página final** listando tudo (útil para imprimir). Caracteres fora do alfabeto latino (emoji, por exemplo) viram "?".
+- **Biblioteca** (aprovada pela autora em 16/11): `pdf-lib` 1.17.1 (MIT, JS puro), baixada só ao pedir "com comentários" (pacote próprio, ~420 KB). PDF protegido
+  por senha ou danificado não recebe comentários: o modal avisa e oferece o original.
+- Limitação: os destaques são desenhados no conteúdo da página (não são destaques editáveis do leitor de PDF). A posição respeita
+  área visível (CropBox) e giro da página; em página girada o número na margem não é desenhado (a nota e o destaque ficam). Hipótese 36: o orientador precisa do PDF com marcações para entregar ao aluno fora do sistema.
+
+## Status do documento e aprovação de versão
+
+- **Status**: *Pendente revisão* (estado inicial de toda versão enviada), *Correção solicitada*, *Aprovada* e, para versões antigas, *Substituída*.
+  Saíram "Enviado" e "Em análise".
+- **Como muda** (hipótese 37, a confirmar com orientadores):
+  - o aluno envia uma versão: **Pendente revisão**, e a versão anterior que não foi aprovada passa a **Substituída** (inclusive a que nunca foi
+    revisada: o orientador avalia só a mais nova). Versão substituída não recebe mais retorno geral; comentários e histórico dela continuam visíveis;
+  - o orientador pede uma correção (comentário em trecho ou retorno geral do tipo "Solicitar correção"): **Correção solicitada**. Resolver as
+    correções não muda o status; o aluno envia uma nova versão (ver acima);
+  - o orientador usa **Aprovar versão**: **Aprovada**. Só a versão mais recente do documento pode ser aprovada, a aprovação pede confirmação
+    (com aviso se houver correções pendentes) e, neste protótipo, não é desfeita. Versão aprovada não recebe novo retorno geral;
+    comentários em trechos continuam possíveis.
+- **Retorno geral sobre esta versão**: um só por versão. O orientador cria uma vez e depois **edita** (texto e tipo); mudar o tipo recalcula se há
+  correção pendente. Quem escreveu é o único que edita.
+- A aprovação do documento não é aprovação institucional do TCC (etapas, banca e nota continuam fora do protótipo).
+
