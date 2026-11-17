@@ -12,8 +12,11 @@ export interface User {
 export type Fase = 'TCC1' | 'TCC2'
 export type TccStatus = 'em_andamento' | 'atencao' | 'atrasado' | 'concluido'
 export type AtividadeStatus = 'pendente' | 'em_andamento' | 'concluida' | 'atrasada'
-/** Pendente de revisão (aguarda o orientador), correção solicitada ou aprovada. Cada versão enviada começa pendente. */
-export type DocumentoStatus = 'pendente_revisao' | 'correcao' | 'aprovado'
+/**
+ * Pendente de revisão (aguarda o orientador), correção solicitada ou aprovada. Cada versão enviada começa pendente.
+ * Quando o aluno envia uma versão nova, a anterior que não foi aprovada fica "substituída".
+ */
+export type DocumentoStatus = 'pendente_revisao' | 'correcao' | 'aprovado' | 'substituida'
 export type BancaSituacao = 'a_definir' | 'proposta' | 'agendada' | 'realizada'
 export type FeedbackTipo = 'comentario' | 'correcao'
 

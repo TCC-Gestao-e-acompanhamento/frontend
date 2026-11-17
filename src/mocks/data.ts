@@ -105,8 +105,8 @@ export interface DocumentoRecord {
 }
 
 export const documentos: DocumentoRecord[] = [
-  { id: 'd1', tccId: 't1', nome: 'Monografia', versao: 1, tipo: 'Monografia', enviadoEm: addDays(-30), status: 'correcao', arquivoUrl: publico('exemplos/monografia-exemplo.pdf') },
-  { id: 'd2', tccId: 't1', nome: 'Monografia', versao: 2, tipo: 'Monografia', enviadoEm: addDays(-15), status: 'correcao', arquivoUrl: publico('exemplos/monografia-exemplo.pdf') },
+  { id: 'd1', tccId: 't1', nome: 'Monografia', versao: 1, tipo: 'Monografia', enviadoEm: addDays(-30), status: 'substituida', arquivoUrl: publico('exemplos/monografia-exemplo.pdf') },
+  { id: 'd2', tccId: 't1', nome: 'Monografia', versao: 2, tipo: 'Monografia', enviadoEm: addDays(-15), status: 'substituida', arquivoUrl: publico('exemplos/monografia-exemplo.pdf') },
   { id: 'd3', tccId: 't1', nome: 'Monografia', versao: 3, tipo: 'Monografia', enviadoEm: addDays(-2), status: 'correcao', arquivoUrl: publico('exemplos/monografia-exemplo.pdf') },
   { id: 'd4', tccId: 't2', nome: 'Projeto de pesquisa', versao: 2, tipo: 'Projeto', enviadoEm: addDays(-22), status: 'aprovado', arquivoUrl: publico('exemplos/capitulo-exemplo.pdf') },
   { id: 'd5', tccId: 't2', nome: 'Revisão bibliográfica', versao: 1, tipo: 'Capítulo', enviadoEm: addDays(-1), status: 'pendente_revisao', arquivoUrl: publico('exemplos/capitulo-exemplo.pdf') },

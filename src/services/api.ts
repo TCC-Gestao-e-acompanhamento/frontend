@@ -276,7 +276,8 @@ export async function sendDocumento(user: User, input: NovoDocumento): Promise<D
     }
     if (!origemOk || !input.arquivo.toLowerCase().endsWith('.pdf')) throw new ApiError('Arquivo inválido. Envie um PDF.', 422)
   }
-  const versao = documentos.filter((d) => d.tccId === input.tccId && d.nome === input.nome).length + 1
+  // maior número já usado + 1 (não a contagem: o histórico pode começar em outra versão)
+  const versao = Math.max(0, ...documentos.filter((d) => d.tccId === input.tccId && d.nome === input.nome).map((d) => d.versao)) + 1
   const rec = {
     id: `d${Date.now()}`,
     tccId: input.tccId,
@@ -286,6 +287,10 @@ export async function sendDocumento(user: User, input: NovoDocumento): Promise<D
     enviadoEm: addDays(0),
     status: 'pendente_revisao' as const,
     arquivoUrl: input.arquivoUrl,
+  }
+  // a versão anterior deixa de aguardar revisão: o orientador passa a avaliar a nova (versão aprovada continua aprovada)
+  for (const antiga of documentos) {
+    if (antiga.tccId === rec.tccId && antiga.nome === rec.nome && antiga.status !== 'aprovado') antiga.status = 'substituida'
   }
   documentos.push(rec)
   await new Promise((r) => setTimeout(r, 500))
@@ -327,6 +332,7 @@ export async function addFeedback(user: User, input: NovoFeedback): Promise<void
   if (input.texto.length > 2000) throw new ApiError('O texto é longo demais (máximo de 2000 caracteres).', 422)
   // cada versão tem um único retorno geral: depois de criado, ele é editado
   if (doc?.status === 'aprovado') throw new ApiError('Esta versão já foi aprovada e não aceita mais retorno geral.', 409)
+  if (doc?.status === 'substituida') throw new ApiError('Esta versão foi substituída por uma mais nova. Dê o retorno na versão atual.', 409)
   if (doc && feedbacks.some((f) => f.documentoId === doc.id)) throw new ApiError('Esta versão já tem um retorno geral. Edite o que já existe.', 409)
   if (doc && input.tipo === 'correcao') registrarPedidoDeCorrecao(doc)
   feedbacks.push({
@@ -353,6 +359,7 @@ export async function updateFeedback(user: User, id: string, input: AtualizacaoF
   if (input.texto.length > 2000) throw new ApiError('O texto é longo demais (máximo de 2000 caracteres).', 422)
   const doc = fb.documentoId ? documentos.find((d) => d.id === fb.documentoId) : undefined
   if (doc?.status === 'aprovado') throw new ApiError('Esta versão já foi aprovada e não aceita mais alterações no retorno.', 409)
+  if (doc?.status === 'substituida') throw new ApiError('Esta versão foi substituída por uma mais nova e não aceita mais alterações no retorno.', 409)
   if (input.tipo !== fb.tipo) {
     fb.tipo = input.tipo
     fb.resolvido = input.tipo === 'comentario'

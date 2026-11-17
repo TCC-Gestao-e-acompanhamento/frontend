@@ -323,11 +323,13 @@ ou recarregar a página reinicia esses dados, e então um documento enviado ante
 
 ## Status do documento e aprovação de versão
 
-- **Três status**: *Pendente revisão* (estado inicial de toda versão enviada), *Correção solicitada* e *Aprovada*. Saíram "Enviado" e "Em análise".
+- **Status**: *Pendente revisão* (estado inicial de toda versão enviada), *Correção solicitada*, *Aprovada* e, para versões antigas, *Substituída*.
+  Saíram "Enviado" e "Em análise".
 - **Como muda** (hipótese 37, a confirmar com orientadores):
-  - o aluno envia uma versão: **Pendente revisão**;
+  - o aluno envia uma versão: **Pendente revisão**, e a versão anterior que não foi aprovada passa a **Substituída** (inclusive a que nunca foi
+    revisada: o orientador avalia só a mais nova). Versão substituída não recebe mais retorno geral; comentários e histórico dela continuam visíveis;
   - o orientador pede uma correção (comentário em trecho ou retorno geral do tipo "Solicitar correção"): **Correção solicitada**. Resolver as
-    correções não muda o status; o aluno envia uma nova versão, que volta a ser Pendente revisão;
+    correções não muda o status; o aluno envia uma nova versão (ver acima);
   - o orientador usa **Aprovar versão**: **Aprovada**. Só a versão mais recente do documento pode ser aprovada, a aprovação pede confirmação
     (com aviso se houver correções pendentes) e, neste protótipo, não é desfeita. Versão aprovada não recebe novo retorno geral;
     comentários em trechos continuam possíveis.

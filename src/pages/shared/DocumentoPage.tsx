@@ -103,6 +103,8 @@ export default function DocumentoPage() {
       <DataBoundary state={state} reload={reload}>
         {({ conteudo, anotacoes, gerais }) => {
           const d = conteudo.documento;
+          // versão aprovada ou substituída por outra mais nova não recebe mais retorno geral
+          const versaoAberta = d.status === "pendente_revisao" || d.status === "correcao";
           return (
             <div className="space-y-6">
               <PageHeader
@@ -145,7 +147,7 @@ export default function DocumentoPage() {
                   {/* um único retorno geral por versão: criado uma vez e depois editado */}
                   {papel === "orientador" &&
                     gerais.length === 0 &&
-                    d.status !== "aprovado" && (
+                    versaoAberta && (
                     <FeedbackForm
                       tccId={d.tccId}
                       documentoId={d.id}
@@ -179,7 +181,7 @@ export default function DocumentoPage() {
                             Marcar como resolvida
                           </Button>
                         ) : papel === "orientador" &&
-                          d.status !== "aprovado" ? (
+                          versaoAberta ? (
                           <Button
                             size="sm"
                             variant="neutral"

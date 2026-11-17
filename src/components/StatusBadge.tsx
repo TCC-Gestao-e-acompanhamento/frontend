@@ -18,6 +18,7 @@ const MAPS = {
     pendente_revisao: ['brand', 'Pendente revisão'],
     correcao: ['warning', 'Correção solicitada'],
     aprovado: ['success', 'Aprovada'],
+    substituida: ['neutral', 'Substituída'],
   } satisfies Record<DocumentoStatus, [Tone, string]>,
   solicitacao: {
     pendente: ['warning', 'Pendente'],
