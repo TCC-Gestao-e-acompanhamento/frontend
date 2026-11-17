@@ -9,18 +9,15 @@ import { listEventosPublicos } from '../../services/api'
 import type { EventoCalendario } from '../../types'
 
 type Vista = 'mes' | 'lista'
-type Filtro = 'todos' | 'TCC1' | 'TCC2' | 'defesa' | 'inscricao'
+type Filtro = 'todos' | 'defesa' | 'inscricao'
 
 const FILTROS: Array<{ key: Filtro; label: string; dot?: string }> = [
   { key: 'todos', label: 'Todos' },
-  { key: 'TCC1', label: 'Prazos TCC 1', dot: eventDot('brand') },
-  { key: 'TCC2', label: 'Prazos TCC 2', dot: eventDot('neutral') },
   { key: 'defesa', label: 'Defesas', dot: eventDot('success') },
   { key: 'inscricao', label: 'Inscrições', dot: eventDot('warning') },
 ]
 
-const passa = (e: EventoCalendario, f: Filtro) =>
-  f === 'todos' || (f === 'defesa' || f === 'inscricao' ? e.tipo === f : e.tipo === 'prazo' && e.fase === f)
+const passa = (e: EventoCalendario, f: Filtro) => f === 'todos' || e.tipo === f
 
 export default function CalendarioPage() {
   const { state, reload } = useAsync(listEventosPublicos)
@@ -33,13 +30,13 @@ export default function CalendarioPage() {
     <>
       <PageHeader
         title="Calendário acadêmico"
-        description="Prazos institucionais e defesas abertas ao público."
+        description="Defesas abertas ao público e período de inscrições no TCC."
       />
       <DataBoundary
         state={state}
         reload={reload}
         isEmpty={(d) => d.length === 0}
-        empty={{ title: 'Calendário ainda não publicado', description: 'A coordenação divulgará prazos e defesas nesta página.' }}
+        empty={{ title: 'Calendário ainda não publicado', description: 'A coordenação divulgará defesas e inscrições nesta página.' }}
       >
         {(todos) => <Conteudo todos={todos} vista={vista} setVista={setVista} filtro={filtro} setFiltro={setFiltro} mes={mes} setMes={setMes} dia={dia} setDia={setDia} />}
       </DataBoundary>

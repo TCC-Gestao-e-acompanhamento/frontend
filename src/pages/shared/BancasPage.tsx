@@ -42,7 +42,8 @@ export default function BancasPage() {
   }
 
   const acoesDe = (b: Banca) => {
-    if (!coordenacao || (b.situacao !== 'proposta' && b.situacao !== 'agendada')) return undefined
+    // defesas sem TCC (dados de exemplo) são só de consulta
+    if (!coordenacao || !b.tccId || (b.situacao !== 'proposta' && b.situacao !== 'agendada')) return undefined
     return (
       <>
         {b.situacao === 'proposta' && (
