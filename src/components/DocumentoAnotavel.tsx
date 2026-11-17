@@ -14,7 +14,6 @@ interface Props {
   anotacoes: Anotacao[]
   papel: 'aluno' | 'orientador'
   onCriar: (d: Selecao & { tipo: FeedbackTipo; texto: string }) => Promise<void>
-  onResponder: (id: string, texto: string) => Promise<void>
   onResolver: (id: string, resolvida: boolean) => Promise<void>
   onExcluir: (id: string) => Promise<void>
 }
@@ -71,7 +70,7 @@ function segmentar(texto: string, anots: Array<{ inicio: number; fim: number; a?
  * Documento com comentários em trechos. O orientador seleciona um trecho (ou comenta o parágrafo inteiro);
  * o aluno vê os trechos destacados, responde e marca como resolvido.
  */
-export function DocumentoAnotavel({ paragrafos, anotacoes, papel, onCriar, onResponder, onResolver, onExcluir }: Props) {
+export function DocumentoAnotavel({ paragrafos, anotacoes, papel, onCriar, onResolver, onExcluir }: Props) {
   const ordenadas = useMemo(() => [...anotacoes].sort((a, b) => a.paragrafo - b.paragrafo || a.inicio - b.inicio), [anotacoes])
   const numeros = useMemo(() => new Map(ordenadas.map((a, i) => [a.id, i + 1])), [ordenadas])
   const [selecao, setSelecao] = useState<Selecao | null>(null)
@@ -215,7 +214,6 @@ export function DocumentoAnotavel({ paragrafos, anotacoes, papel, onCriar, onRes
           setSelecao(null)
           window.getSelection()?.removeAllRanges()
         }}
-        onResponder={onResponder}
         onResolver={onResolver}
         onExcluir={onExcluir}
       />

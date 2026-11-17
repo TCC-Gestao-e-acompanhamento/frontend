@@ -7,24 +7,28 @@ import { FeedbackList } from "../../components/FeedbackList";
 import { StatusBadge } from "../../components/StatusBadge";
 import {
   Button,
+  buttonClass,
   DataBoundary,
   EmptyState,
   LoadingState,
+  Icon,
   Modal,
   PageHeader,
   SectionCard,
+  Tooltip,
 } from "../../design-system";
 import { useAsync } from "../../hooks/useAsync";
+import { cn } from "../../lib/format";
 import {
   aprovarDocumento,
   createAnotacao,
   createAnotacaoPdf,
   deleteAnotacao,
+  deleteFeedback,
   getDocumentoConteudo,
   listAnotacoes,
   listFeedbacks,
   resolverFeedback,
-  responderAnotacao,
   setAnotacaoResolvida,
 } from "../../services/api";
 
@@ -55,6 +59,27 @@ export default function DocumentoPage() {
   const [resolvendo, setResolvendo] = useState<string>();
   const [erroGeral, setErroGeral] = useState<string>();
   const [editandoId, setEditandoId] = useState<string>();
+  const [apagandoId, setApagandoId] = useState<string>();
+  const [apagandoEnvio, setApagandoEnvio] = useState(false);
+  const [erroApagar, setErroApagar] = useState<string>();
+
+  const apagarGeral = async () => {
+    if (!apagandoId) return;
+    setApagandoEnvio(true);
+    setErroApagar(undefined);
+    try {
+      await deleteFeedback(user, apagandoId);
+      setApagandoId(undefined);
+      setEditandoId(undefined);
+      reload();
+    } catch (e) {
+      setErroApagar(
+        e instanceof Error ? e.message : "Não foi possível apagar o retorno.",
+      );
+    } finally {
+      setApagandoEnvio(false);
+    }
+  };
   const [aprovando, setAprovando] = useState(false);
   const [aprovandoEnvio, setAprovandoEnvio] = useState(false);
   const [erroAprovar, setErroAprovar] = useState<string>();
@@ -135,6 +160,38 @@ export default function DocumentoPage() {
                 <SectionCard
                   title="Retorno geral sobre esta versão"
                   description="Correções e comentários do orientador que não estão ligados a um trecho."
+                  action={
+                    papel === "orientador" &&
+                    versaoAberta &&
+                    gerais.length > 0 &&
+                    !editandoId ? (
+                      <div className="flex items-center gap-2">
+                        <Tooltip texto="Editar o retorno geral">
+                          <button
+                            type="button"
+                            onClick={() => setEditandoId(gerais[0].id)}
+                            aria-label="Editar o retorno geral"
+                            className={cn(buttonClass("neutral", "sm"), "min-w-11 px-0 sm:min-w-9")}
+                          >
+                            <Icon name="pencil" size={16} />
+                          </button>
+                        </Tooltip>
+                        <Tooltip texto="Excluir o retorno geral" alinhar="fim">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setErroApagar(undefined);
+                              setApagandoId(gerais[0].id);
+                            }}
+                            aria-label="Excluir o retorno geral"
+                            className={cn(buttonClass("danger-quiet", "sm"), "min-w-11 px-0 sm:min-w-9")}
+                          >
+                            <Icon name="trash" size={16} />
+                          </button>
+                        </Tooltip>
+                      </div>
+                    ) : undefined
+                  }
                 >
                   {erroGeral && (
                     <p
@@ -180,15 +237,6 @@ export default function DocumentoPage() {
                           >
                             Marcar como resolvida
                           </Button>
-                        ) : papel === "orientador" &&
-                          versaoAberta ? (
-                          <Button
-                            size="sm"
-                            variant="neutral"
-                            onClick={() => setEditandoId(f.id)}
-                          >
-                            Editar
-                          </Button>
                         ) : null
                       }
                     />
@@ -211,10 +259,6 @@ export default function DocumentoPage() {
                         documentoId: id,
                         ...dados,
                       });
-                      reload();
-                    }}
-                    onResponder={async (aid, texto) => {
-                      await responderAnotacao(user, aid, texto);
                       reload();
                     }}
                     onResolver={async (aid, resolvida) => {
@@ -241,10 +285,6 @@ export default function DocumentoPage() {
                     await createAnotacao(user, { documentoId: id, ...dados });
                     reload();
                   }}
-                  onResponder={async (aid, texto) => {
-                    await responderAnotacao(user, aid, texto);
-                    reload();
-                  }}
                   onResolver={async (aid, resolvida) => {
                     await setAnotacaoResolvida(user, aid, resolvida);
                     reload();
@@ -255,6 +295,43 @@ export default function DocumentoPage() {
                   }}
                 />
               )}
+              <Modal
+                open={!!apagandoId}
+                title="Excluir o retorno geral?"
+                bloqueado={apagandoEnvio}
+                onClose={() => setApagandoId(undefined)}
+              >
+                <div className="space-y-4 text-sm">
+                  <p>
+                    O retorno geral desta versão será apagado e você poderá
+                    escrever outro. Não dá para desfazer.
+                  </p>
+                  {erroApagar && (
+                    <p
+                      role="alert"
+                      className="rounded-lg border border-danger/30 bg-danger/10 p-3 text-danger"
+                    >
+                      {erroApagar}
+                    </p>
+                  )}
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      variant="danger"
+                      loading={apagandoEnvio}
+                      onClick={apagarGeral}
+                    >
+                      Excluir
+                    </Button>
+                    <Button
+                      variant="neutral"
+                      disabled={apagandoEnvio}
+                      onClick={() => setApagandoId(undefined)}
+                    >
+                      Cancelar
+                    </Button>
+                  </div>
+                </div>
+              </Modal>
               <Modal
                 open={aprovando}
                 title={`Aprovar a versão ${d.versao}?`}
