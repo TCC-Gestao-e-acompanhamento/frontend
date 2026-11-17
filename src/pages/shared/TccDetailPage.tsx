@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { ActivityList } from '../../components/ActivityList'
 import { AtividadeForm } from '../../components/AtividadeForm'
+import { EtapasAcompanhamento } from '../../components/EtapasAcompanhamento'
 import { EtapasEditor } from '../../components/EtapasEditor'
 import { DocumentList } from '../../components/DocumentList'
 import { FeedbackList } from '../../components/FeedbackList'
@@ -9,7 +10,7 @@ import { LinhaDoTempo } from '../../components/LinhaDoTempo'
 import { OrientacaoForm } from '../../components/OrientacaoForm'
 import { StatusBadge } from '../../components/StatusBadge'
 import { useCurrentUser } from '../../auth/useAuth'
-import { Button, DataBoundary, PageHeader, ProgressBar, SectionCard, Stepper, Tabs } from '../../design-system'
+import { Button, DataBoundary, PageHeader, ProgressBar, SectionCard, Tabs } from '../../design-system'
 import { useAsync } from '../../hooks/useAsync'
 import { getTcc, listAtividades, listDocumentos, listFeedbacks, listLinhaDoTempo } from '../../services/api'
 
@@ -76,11 +77,11 @@ export default function TccDetailPage() {
                 ) : (
                   <div className="space-y-4">
                     {user.role === 'orientador' && (
-                      <div className="flex justify-end">
+                      <div className="flex justify-start">
                         <Button variant="secondary" onClick={() => setDefinindo(true)}>Definir etapas</Button>
                       </div>
                     )}
-                    <Stepper etapas={tcc.etapas} />
+                    <EtapasAcompanhamento tcc={tcc} podeConcluir={user.role === 'orientador'} onChanged={reload} />
                   </div>
                 ))}
               {aba === 'cronograma' && (

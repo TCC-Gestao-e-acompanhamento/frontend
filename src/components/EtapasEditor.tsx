@@ -24,7 +24,11 @@ export function EtapasEditor({ tcc, onSaved, onCancel }: Props) {
   const [hoje] = useState(() => toIso(new Date()))
   const nova = (e: { nome: string; fase: Fase; prazo?: string }): Linha => ({ chave: crypto.randomUUID(), nome: e.nome, fase: e.fase, prazo: e.prazo ?? '' })
   const [linhas, setLinhas] = useState<Linha[]>(() => tcc.etapas.map(nova))
-  const [atualChave, setAtualChave] = useState(() => linhas[Math.max(0, tcc.etapas.findIndex((e) => e.situacao === 'atual'))]?.chave ?? '')
+  // chave vazia = todas as etapas concluídas (é como o trabalho começa quando já terminou tudo)
+  const [atualChave, setAtualChave] = useState(() => {
+    const i = tcc.etapas.findIndex((e) => e.situacao === 'atual')
+    return i >= 0 ? linhas[i].chave : ''
+  })
   const [erro, setErro] = useState<string>()
   const [salvando, setSalvando] = useState(false)
 
@@ -64,7 +68,7 @@ export function EtapasEditor({ tcc, onSaved, onCancel }: Props) {
     try {
       await defineEtapas(user, tcc.id, {
         etapas: linhas.map((l) => ({ nome: l.nome, fase: l.fase, ...(l.prazo ? { prazo: l.prazo } : {}) })),
-        atual: Math.max(0, linhas.findIndex((l) => l.chave === atualChave)),
+        atual: atualChave === '' ? linhas.length : Math.max(0, linhas.findIndex((l) => l.chave === atualChave)),
       })
       onSaved()
     } catch (err) {
@@ -112,7 +116,11 @@ export function EtapasEditor({ tcc, onSaved, onCancel }: Props) {
         ))}
       </ol>
 
-      {linhas.length < 12 && <Button variant="secondary" onClick={adicionar}>Adicionar etapa</Button>}
+      <label className="inline-flex min-h-11 items-center gap-2 text-sm sm:min-h-9">
+        <input type="radio" name="etapa-atual" className="size-4 accent-brand-700" checked={atualChave === ''} onChange={() => setAtualChave('')} />
+        Todas as etapas concluídas
+      </label>
+      {linhas.length < 12 && <div><Button variant="secondary" onClick={adicionar}>Adicionar etapa</Button></div>}
       {erro && <p role="alert" className="rounded-lg border border-danger/30 bg-danger/10 p-3 text-sm text-danger">{erro}</p>}
       <div className="flex flex-wrap gap-3">
         <Button type="submit" loading={salvando}>Salvar etapas</Button>
