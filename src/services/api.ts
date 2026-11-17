@@ -113,11 +113,17 @@ const userById = (id: string): User => {
 function buildTcc(r: TccRecord): Tcc {
   const atvs = atividades.filter((a) => a.tccId === r.id)
   const lista: EtapaDef[] = r.etapasDef ?? ETAPAS
-  const atual = Math.min(r.etapaIndex, lista.length - 1)
-  const etapas: Etapa[] = lista.map((e, i) => ({
-    ...e,
-    situacao: i < atual ? 'concluida' : i === atual ? 'atual' : 'futura',
-  }))
+  // etapaIndex igual ao total = todas concluídas (nenhuma etapa fica como atual)
+  const posicao = Math.min(r.etapaIndex, lista.length)
+  const atual = Math.min(posicao, lista.length - 1)
+  const etapas: Etapa[] = lista.map((e, i) => {
+    const c = r.conclusoes?.[e.nome.toLowerCase()]
+    return {
+      ...e,
+      situacao: i < posicao ? 'concluida' : i === posicao ? 'atual' : 'futura',
+      ...(i < posicao && c ? { concluidaEm: c.em, concluidaPor: userById(c.porId).nome } : {}),
+    }
+  })
   const pendencias = atvs.filter((a) => a.status === 'pendente' || a.status === 'atrasada').length
   let status: TccStatus = 'em_andamento'
   if (atvs.some((a) => a.status === 'atrasada')) status = 'atrasado'
@@ -129,9 +135,9 @@ function buildTcc(r: TccRecord): Tcc {
     aluno: userById(r.alunoId),
     orientador: userById(r.orientadorId),
     fase: lista[atual].fase,
-    etapaAtual: lista[atual].nome,
+    etapaAtual: posicao >= lista.length ? 'Todas as etapas concluídas' : lista[atual].nome,
     etapas,
-    progresso: Math.round((atual / lista.length) * 100),
+    progresso: Math.round((posicao / lista.length) * 100),
     status,
     pendencias,
   }
@@ -245,6 +251,21 @@ export function getTcc(user: User, id: string): Promise<Tcc> {
   return settle(buildTcc(assertAccess(user, id)), buildTcc(assertAccess(user, id)))
 }
 
+/** Aluno ou orientador do TCC conclui a etapa atual: a seguinte passa a ser a atual (ou o trabalho fica com todas concluídas). */
+export async function concluirEtapa(user: User, tccId: string, etapaEsperada: string): Promise<Tcc> {
+  if (user.role !== 'aluno' && user.role !== 'orientador') throw new ApiError('Somente o aluno ou o orientador concluem uma etapa', 403)
+  const rec = assertAccess(user, tccId)
+  const lista: EtapaDef[] = rec.etapasDef ?? ETAPAS
+  if (rec.etapaIndex >= lista.length) throw new ApiError('Todas as etapas deste trabalho já foram concluídas.', 409)
+  const etapa = lista[rec.etapaIndex]
+  // quem confirma viu uma etapa específica: se a outra parte já concluiu, não conclui a seguinte sem querer
+  if (etapa.nome.toLowerCase() !== String(etapaEsperada ?? '').toLowerCase()) throw new ApiError('A etapa atual mudou enquanto você olhava. A tela foi atualizada: confira e conclua de novo se for o caso.', 409)
+  rec.conclusoes = { ...rec.conclusoes, [etapa.nome.toLowerCase()]: { em: addDays(0), porId: user.id } }
+  rec.etapaIndex += 1
+  await wait(350)
+  return buildTcc(rec)
+}
+
 const dataIsoValida = (v: unknown): v is string => {
   if (typeof v !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(v)) return false
   const d = new Date(`${v}T00:00:00`)
@@ -273,9 +294,13 @@ export async function defineEtapas(user: User, tccId: string, input: DefinirEtap
     }
     limpas.push({ nome, fase: e.fase, ...(e.prazo ? { prazo: e.prazo } : {}) })
   }
-  if (!Number.isInteger(input.atual) || input.atual < 0 || input.atual >= limpas.length) throw new ApiError('Escolha a etapa atual.', 422)
+  // atual igual ao total = todas as etapas concluídas
+  if (!Number.isInteger(input.atual) || input.atual < 0 || input.atual > limpas.length) throw new ApiError('Escolha a etapa atual.', 422)
   rec.etapasDef = limpas
   rec.etapaIndex = input.atual
+  // mantém quem concluiu as etapas que continuam antes da atual; as demais perdem a conclusão
+  const nomesAnteriores = limpas.slice(0, input.atual).map((e) => e.nome.toLowerCase())
+  rec.conclusoes = Object.fromEntries(Object.entries(rec.conclusoes ?? {}).filter(([nome]) => nomesAnteriores.includes(nome)))
   await wait(350)
   return buildTcc(rec)
 }
@@ -309,8 +334,11 @@ function docView(d: DocumentoRecord): Documento {
   const doDoc = anotacoes.filter((a) => a.documentoId === d.id)
   const correcoesPendentes =
     feedbacks.filter((f) => f.documentoId === d.id && f.tipo === 'correcao' && !f.resolvido).length + doDoc.filter((a) => a.tipo === 'correcao' && !a.resolvida).length
-  const ultimaVersao = !documentos.some((o) => o.tccId === d.tccId && o.nome === d.nome && o.versao > d.versao)
-  return { ...d, alunoNome: aluno(d.tccId), anotacoes: { total: doDoc.length, abertas: doDoc.filter((a) => !a.resolvida).length }, correcoesPendentes, ultimaVersao }
+  const maisNova = documentos
+    .filter((o) => o.tccId === d.tccId && o.nome === d.nome && o.versao > d.versao)
+    .sort((a, b) => b.versao - a.versao)[0]
+  const ultimaVersao = !maisNova
+  return { ...d, alunoNome: aluno(d.tccId), anotacoes: { total: doDoc.length, abertas: doDoc.filter((a) => !a.resolvida).length }, correcoesPendentes, ultimaVersao, versaoMaisRecente: maisNova && { id: maisNova.id, versao: maisNova.versao, enviadoEm: maisNova.enviadoEm } }
 }
 
 export function listDocumentos(user: User, tccId?: string): Promise<Documento[]> {
