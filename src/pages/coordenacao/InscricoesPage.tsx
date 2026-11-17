@@ -107,7 +107,7 @@ function Historico({ periodos, selecionado, onVer, onEditar }: { periodos: Perio
                   <Button size="sm" variant={p.semestre === selecionado ? 'primary' : 'neutral'} aria-pressed={p.semestre === selecionado} aria-label={`Ver inscritos de ${p.semestre}`} onClick={() => onVer(p.semestre)}>
                     Inscritos
                   </Button>
-                  <Button size="sm" variant="neutral" aria-label={`Editar o período de ${p.semestre}`} onClick={() => onEditar(p)}>Editar</Button>
+                  <Button size="sm" variant="warning" aria-label={`Editar o período de ${p.semestre}`} onClick={() => onEditar(p)}>Editar</Button>
                 </div>
               </td>
             </tr>
@@ -152,7 +152,7 @@ function Tabela({ itens, editavel, onEditar, onCancelar }: { itens: Inscricao[];
               {editavel && (
                 <td className="py-3">
                   <div className="flex gap-2">
-                    <Button size="sm" variant="secondary" onClick={() => onEditar(i)} aria-label={`Editar inscrição de ${i.alunoNome}`}>Editar</Button>
+                    <Button size="sm" variant="warning" onClick={() => onEditar(i)} aria-label={`Editar inscrição de ${i.alunoNome}`}>Editar</Button>
                     <Button size="sm" variant="secondary" onClick={() => onCancelar(i)} aria-label={`Cancelar inscrição de ${i.alunoNome}`}>Cancelar</Button>
                   </div>
                 </td>
@@ -264,6 +264,15 @@ export default function InscricoesPage() {
                 />
               )}
 
+              {doPeriodo && (
+                <StatGroup>
+                  <StatCard label="Inscritos" value={inscritos.length} />
+                  <StatCard label="TCC 1" value={inscritos.filter((i) => i.fase === 'TCC1').length} />
+                  <StatCard label="TCC 2" value={inscritos.filter((i) => i.fase === 'TCC2').length} />
+                  <StatCard label="Aguardando ciência" value={inscritos.filter((i) => !i.ciente).length} tone={inscritos.some((i) => !i.ciente) ? 'warning' : 'default'} />
+                </StatGroup>
+              )}
+
               <SectionCard title="Histórico por semestre" description="Um período por semestre. Escolha um semestre para ver os inscritos.">
                 {periodos.length === 0 ? (
                   <EmptyState title="Nenhum semestre cadastrado" description='Use "Adicionar semestre" para definir o primeiro período de inscrições.' />
@@ -279,13 +288,6 @@ export default function InscricoesPage() {
 
               {doPeriodo && (
                 <>
-                  <StatGroup>
-                    <StatCard label="Inscritos" value={inscritos.length} />
-                    <StatCard label="TCC 1" value={inscritos.filter((i) => i.fase === 'TCC1').length} />
-                    <StatCard label="TCC 2" value={inscritos.filter((i) => i.fase === 'TCC2').length} />
-                    <StatCard label="Aguardando ciência" value={inscritos.filter((i) => !i.ciente).length} tone={inscritos.some((i) => !i.ciente) ? 'warning' : 'default'} hint="Orientadores ainda sem confirmar" />
-                  </StatGroup>
-
                   <SectionCard
                     title={`Inscritos · ${doPeriodo.semestre}`}
                     description={editavel ? 'Período em vigor: dá para editar ou cancelar inscrições.' : 'Semestre anterior: só consulta.'}
