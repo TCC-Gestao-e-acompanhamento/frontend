@@ -5,77 +5,123 @@ import { StatusBadge } from '../../components/StatusBadge'
 import { Badge, Button, DataBoundary, EmptyState, Field, Icon, Input, Modal, PageHeader, SectionCard, Select, StatCard, StatGroup } from '../../design-system'
 import { useAsync } from '../../hooks/useAsync'
 import { baixarCsv, buildCsv } from '../../lib/csv'
-import { daysUntil, formatDate, formatDateLong, plural } from '../../lib/format'
-import { cancelInscricao, getPeriodoInscricao, listInscricoes, listProfessoresPublicos, savePeriodoInscricao, updateInscricao } from '../../services/api'
-import type { Fase, Inscricao, PeriodoInscricao, ProfessorPublico } from '../../types'
+import { daysUntil, formatDate, mascaraSemestre, plural, semestreDe } from '../../lib/format'
+import { cancelInscricao, listInscricoes, listPeriodosInscricao, listProfessoresPublicos, savePeriodoInscricao, updateInscricao } from '../../services/api'
+import type { Fase, Inscricao, PeriodoResumo, ProfessorPublico } from '../../types'
 
-function PeriodoCard({ periodo, onSaved }: { periodo: PeriodoInscricao | null; onSaved: () => void }) {
+type ModoForm = { tipo: 'novo' } | { tipo: 'editar'; periodo: PeriodoResumo }
+
+/** Adiciona o período de inscrições de um semestre (com o semestre atual já preenchido) ou ajusta as datas de um existente. */
+function PeriodoForm({ modo, existentes, onSaved, onCancel }: { modo: ModoForm; existentes: string[]; onSaved: (semestre: string) => void; onCancel: () => void }) {
   const user = useCurrentUser()
-  const [editando, setEditando] = useState(!periodo)
-  const [semestre, setSemestre] = useState(periodo?.semestre ?? '')
-  const [inicio, setInicio] = useState(periodo?.inicio ?? '')
-  const [fim, setFim] = useState(periodo?.fim ?? '')
+  const editando = modo.tipo === 'editar'
+  const [semestre, setSemestre] = useState(() => (modo.tipo === 'editar' ? modo.periodo.semestre : semestreDe(new Date())))
+  const [inicio, setInicio] = useState(modo.tipo === 'editar' ? modo.periodo.inicio : '')
+  const [fim, setFim] = useState(modo.tipo === 'editar' ? modo.periodo.fim : '')
   const [erro, setErro] = useState<string>()
   const [salvando, setSalvando] = useState(false)
-  const [ok, setOk] = useState(false)
 
   const salvar = async (e: FormEvent) => {
     e.preventDefault()
+    if (!editando && existentes.includes(semestre)) return setErro(`O semestre ${semestre} já tem um período. Use "Editar" na tabela para ajustar as datas.`)
     setSalvando(true)
     setErro(undefined)
     try {
       await savePeriodoInscricao(user, { semestre, inicio, fim })
-      setEditando(false)
-      setOk(true)
-      onSaved()
+      onSaved(semestre)
     } catch (err) {
       setErro(err instanceof Error ? err.message : 'Não foi possível salvar o período.')
-    } finally {
       setSalvando(false)
     }
   }
 
   return (
     <SectionCard
-      title="Período de inscrições"
-      description="Alunos só conseguem se inscrever dentro destas datas."
-      action={periodo && !editando ? <StatusBadge kind="periodo" value={periodo.situacao} /> : undefined}
+      title={editando ? `Editar período de ${modo.periodo.semestre}` : 'Adicionar semestre'}
+      description="Os alunos só conseguem se inscrever entre as datas de início e de fim."
     >
-      {editando ? (
-        <form onSubmit={salvar} noValidate className="space-y-4">
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <Field label="Semestre" hint="Ex.: 2027/1">{(p) => <Input {...p} value={semestre} onChange={(e) => setSemestre(e.target.value)} />}</Field>
-            <Field label="Início das inscrições">{(p) => <Input {...p} type="date" value={inicio} onChange={(e) => setInicio(e.target.value)} />}</Field>
-            <Field label="Fim das inscrições">{(p) => <Input {...p} type="date" value={fim} onChange={(e) => setFim(e.target.value)} />}</Field>
-          </div>
-          {erro && <p role="alert" className="text-sm text-danger">{erro}</p>}
-          <div className="flex gap-3">
-            <Button type="submit" loading={salvando}>Salvar período</Button>
-            {periodo && <Button variant="secondary" onClick={() => { setEditando(false); setErro(undefined) }}>Cancelar</Button>}
-          </div>
-        </form>
-      ) : periodo ? (
-        <div className="space-y-3">
-          {ok && <p role="status" className="rounded-lg bg-accent-50 p-3 text-sm text-success">Período atualizado. O calendário público e a página dos alunos já refletem as novas datas.</p>}
-          <p className="text-sm">
-            Semestre <span className="font-medium">{periodo.semestre}</span>: de <span className="font-medium">{formatDateLong(periodo.inicio)}</span> a <span className="font-medium">{formatDateLong(periodo.fim)}</span>.
-          </p>
-          <p className="text-sm text-ink-muted">
-            {periodo.situacao === 'antes' && `Abrem em ${plural(daysUntil(periodo.inicio), 'dia', 'dias')}.`}
-            {periodo.situacao === 'aberto' && `Terminam em ${plural(daysUntil(periodo.fim), 'dia', 'dias')}.`}
-            {periodo.situacao === 'encerrado' && 'Encerradas.'}
-          </p>
-          <Button variant="secondary" onClick={() => { setEditando(true); setOk(false) }}>Editar período</Button>
+      <form onSubmit={salvar} noValidate className="space-y-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <Field label="Semestre" hint="Ex.: 2027/1">
+            {(p) => (
+              <Input
+                {...p}
+                value={semestre}
+                inputMode="numeric"
+                autoComplete="off"
+                maxLength={6}
+                placeholder="0000/0"
+                readOnly={editando}
+                onChange={(e) => setSemestre(mascaraSemestre(e.target.value))}
+              />
+            )}
+          </Field>
+          <Field label="Início das inscrições">{(p) => <Input {...p} type="date" value={inicio} onChange={(e) => setInicio(e.target.value)} />}</Field>
+          <Field label="Fim das inscrições">{(p) => <Input {...p} type="date" value={fim} onChange={(e) => setFim(e.target.value)} />}</Field>
         </div>
-      ) : null}
+        {erro && <p role="alert" className="text-sm text-danger">{erro}</p>}
+        <div className="flex gap-3">
+          <Button type="submit" loading={salvando}>{editando ? 'Salvar datas' : 'Adicionar semestre'}</Button>
+          <Button variant="neutral" disabled={salvando} onClick={onCancel}>Cancelar</Button>
+        </div>
+      </form>
     </SectionCard>
   )
 }
 
-function Tabela({ itens, onEditar, onCancelar }: { itens: Inscricao[]; onEditar: (i: Inscricao) => void; onCancelar: (i: Inscricao) => void }) {
+/** Histórico: um período por semestre, com o número de inscritos. "Ver inscritos" troca a lista abaixo. */
+function Historico({ periodos, selecionado, onVer, onEditar }: { periodos: PeriodoResumo[]; selecionado: string; onVer: (semestre: string) => void; onEditar: (p: PeriodoResumo) => void }) {
   return (
     <div className="relative overflow-x-auto">
-      <table className="w-full min-w-[58rem] text-left text-sm">
+      <table className="w-full min-w-[40rem] text-left text-sm">
+        <caption className="sr-only">Histórico de inscrições por semestre</caption>
+        <thead className="border-b border-border text-xs tracking-wide text-ink-muted uppercase">
+          <tr>
+            <th scope="col" className="py-2 pr-4 font-medium">Semestre</th>
+            <th scope="col" className="py-2 pr-4 font-medium">Período de inscrição</th>
+            <th scope="col" className="py-2 pr-4 font-medium">Situação</th>
+            <th scope="col" className="py-2 pr-4 text-right font-medium">Inscritos</th>
+            <th scope="col" className="py-2 pr-4 font-medium whitespace-nowrap">TCC 1 · TCC 2</th>
+            <th scope="col" className="py-2 font-medium"><span className="sr-only">Ações</span></th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-border">
+          {periodos.map((p) => (
+            <tr key={p.semestre} className={p.semestre === selecionado ? 'bg-brand-50/60' : undefined}>
+              <th scope="row" className="py-3 pr-4 font-semibold whitespace-nowrap">{p.semestre}</th>
+              <td className="py-3 pr-4 whitespace-nowrap">
+                {formatDate(p.inicio)} a {formatDate(p.fim)}
+                {p.situacao === 'antes' && <p className="text-xs text-ink-muted">Abrem em {plural(daysUntil(p.inicio), 'dia', 'dias')}</p>}
+                {p.situacao === 'aberto' && <p className="text-xs text-ink-muted">Terminam em {plural(daysUntil(p.fim), 'dia', 'dias')}</p>}
+              </td>
+              <td className="py-3 pr-4">
+                <div className="flex flex-wrap gap-1.5">
+                  <StatusBadge kind="periodo" value={p.situacao} />
+                  {p.ativo && <Badge tone="brand">Em vigor</Badge>}
+                </div>
+              </td>
+              <td className="py-3 pr-4 text-right font-medium tabular-nums">{p.total}</td>
+              <td className="py-3 pr-4 whitespace-nowrap tabular-nums text-ink-muted">{p.tcc1} · {p.tcc2}</td>
+              <td className="py-3">
+                <div className="flex justify-end gap-2 whitespace-nowrap">
+                  <Button size="sm" variant={p.semestre === selecionado ? 'primary' : 'neutral'} aria-pressed={p.semestre === selecionado} aria-label={`Ver inscritos de ${p.semestre}`} onClick={() => onVer(p.semestre)}>
+                    Inscritos
+                  </Button>
+                  <Button size="sm" variant="neutral" aria-label={`Editar o período de ${p.semestre}`} onClick={() => onEditar(p)}>Editar</Button>
+                </div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+function Tabela({ itens, editavel, onEditar, onCancelar }: { itens: Inscricao[]; editavel: boolean; onEditar: (i: Inscricao) => void; onCancelar: (i: Inscricao) => void }) {
+  return (
+    <div className="relative overflow-x-auto">
+      <table className="w-full min-w-[54rem] text-left text-sm">
         <caption className="sr-only">Inscritos no TCC</caption>
         <thead className="border-b border-border text-xs tracking-wide text-ink-muted uppercase">
           <tr>
@@ -84,7 +130,7 @@ function Tabela({ itens, onEditar, onCancelar }: { itens: Inscricao[]; onEditar:
             <th scope="col" className="py-2 pr-4 font-medium">Orientador</th>
             <th scope="col" className="py-2 pr-4 font-medium">Aviso ao orientador</th>
             <th scope="col" className="py-2 pr-4 font-medium">Inscrição</th>
-            <th scope="col" className="py-2 font-medium"><span className="sr-only">Ações</span></th>
+            {editavel && <th scope="col" className="py-2 font-medium"><span className="sr-only">Ações</span></th>}
           </tr>
         </thead>
         <tbody className="divide-y divide-border">
@@ -100,18 +146,17 @@ function Tabela({ itens, onEditar, onCancelar }: { itens: Inscricao[]; onEditar:
                 <p className="text-ink-muted">{i.orientadorEmail}</p>
               </td>
               <td className="py-3 pr-4">
-                <div className="flex flex-wrap gap-1.5">
-                  <Badge tone={i.avisoOrientador === 'sistema' ? 'brand' : 'neutral'}>{i.avisoOrientador === 'sistema' ? 'No sistema' : 'Por e-mail'}</Badge>
-                  <Badge tone={i.ciente ? 'success' : 'warning'}>{i.ciente ? 'Ciente' : 'Aguardando ciência'}</Badge>
-                </div>
+                <Badge tone={i.ciente ? 'success' : 'warning'}>{i.ciente ? 'Ciente' : 'Aguardando ciência'}</Badge>
               </td>
               <td className="py-3 pr-4">{formatDate(i.atualizadaEm ?? i.criadaEm)}</td>
-              <td className="py-3">
-                <div className="flex gap-2">
-                  <Button size="sm" variant="secondary" onClick={() => onEditar(i)} aria-label={`Editar inscrição de ${i.alunoNome}`}>Editar</Button>
-                  <Button size="sm" variant="secondary" onClick={() => onCancelar(i)} aria-label={`Cancelar inscrição de ${i.alunoNome}`}>Cancelar</Button>
-                </div>
-              </td>
+              {editavel && (
+                <td className="py-3">
+                  <div className="flex gap-2">
+                    <Button size="sm" variant="secondary" onClick={() => onEditar(i)} aria-label={`Editar inscrição de ${i.alunoNome}`}>Editar</Button>
+                    <Button size="sm" variant="secondary" onClick={() => onCancelar(i)} aria-label={`Cancelar inscrição de ${i.alunoNome}`}>Cancelar</Button>
+                  </div>
+                </td>
+              )}
             </tr>
           ))}
         </tbody>
@@ -152,30 +197,41 @@ function CancelarInscricao({ i, onDone, onClose }: { i: Inscricao; onDone: (m: s
 
 export default function InscricoesPage() {
   const user = useCurrentUser()
+  // semestre cuja lista de inscritos está aberta; vazio = o período em vigor
+  const [semestreSel, setSemestreSel] = useState<string>()
   const { state, reload } = useAsync(async () => {
-    const [periodo, inscritos, professores] = await Promise.all([getPeriodoInscricao(), listInscricoes(user), listProfessoresPublicos()])
-    return { periodo, inscritos, professores }
-  }, [user.id])
+    const [periodos, professores] = await Promise.all([listPeriodosInscricao(user), listProfessoresPublicos()])
+    const semestre = semestreSel ?? periodos.find((p) => p.ativo)?.semestre
+    const inscritos = await listInscricoes(user, semestre)
+    return { periodos, inscritos, professores, semestre }
+  }, [user.id, semestreSel])
   const [busca, setBusca] = useState('')
   const [fase, setFase] = useState<'' | Fase>('')
   const [acao, setAcao] = useState<{ i: Inscricao; tipo: 'editar' | 'cancelar' } | null>(null)
+  const [form, setForm] = useState<ModoForm | null>(null)
   const [aviso, setAviso] = useState<string>()
   const fechar = () => setAcao(null)
 
   return (
     <>
-      <PageHeader title="Inscrições no TCC" description="Defina o período e acompanhe quem se inscreveu e com quem pretende fazer o TCC." />
+      <PageHeader
+        title="Inscrições no TCC"
+        description="Cada semestre tem o seu período de inscrições. Adicione o do semestre e acompanhe o histórico de inscritos."
+        actions={!form ? <Button onClick={() => { setAviso(undefined); setForm({ tipo: 'novo' }) }}>Adicionar semestre</Button> : undefined}
+      />
       <DataBoundary state={state} reload={reload}>
-        {({ periodo, inscritos, professores }: { periodo: PeriodoInscricao | null; inscritos: Inscricao[]; professores: ProfessorPublico[] }) => {
+        {({ periodos, inscritos, professores, semestre }: { periodos: PeriodoResumo[]; inscritos: Inscricao[]; professores: ProfessorPublico[]; semestre: string | undefined }) => {
           const q = busca.trim().toLowerCase()
           const filtrados = inscritos.filter(
             (i) =>
               (!fase || i.fase === fase) &&
               (!q || `${i.alunoNome} ${i.matricula} ${i.orientadorNome} ${i.orientadorEmail ?? ''}`.toLowerCase().includes(q)),
           )
+          const doPeriodo = periodos.find((p) => p.semestre === semestre)
+          const editavel = !!doPeriodo?.ativo
           const exportar = () => {
             const linhas = [
-              ['Nome', 'Matrícula', 'Curso', 'TCC', 'Orientador', 'E-mail do orientador', 'Aviso', 'Ciência do orientador', 'Data da inscrição'],
+              ['Nome', 'Matrícula', 'Curso', 'TCC', 'Orientador', 'E-mail do orientador', 'Ciência do orientador', 'Data da inscrição'],
               ...filtrados.map((i) => [
                 i.alunoNome,
                 i.matricula,
@@ -183,55 +239,94 @@ export default function InscricoesPage() {
                 i.fase === 'TCC1' ? 'TCC 1' : 'TCC 2',
                 i.orientadorNome,
                 i.orientadorEmail ?? '',
-                i.avisoOrientador === 'sistema' ? 'No sistema' : 'Por e-mail',
                 i.ciente ? 'Ciente' : 'Aguardando',
                 formatDate(i.atualizadaEm ?? i.criadaEm),
               ]),
             ]
-            baixarCsv(`inscricoes-tcc-${periodo?.semestre.replace('/', '-') ?? 'semestre'}.csv`, buildCsv(linhas))
+            baixarCsv(`inscricoes-tcc-${(semestre ?? 'semestre').replace('/', '-')}.csv`, buildCsv(linhas))
           }
           return (
             <div className="space-y-6">
               {aviso && <p role="status" className="rounded-lg border border-border bg-surface-muted p-3 text-sm">{aviso}</p>}
-              <PeriodoCard periodo={periodo} onSaved={reload} />
 
-              <StatGroup>
-                <StatCard label="Inscritos" value={inscritos.length} />
-                <StatCard label="TCC 1" value={inscritos.filter((i) => i.fase === 'TCC1').length} />
-                <StatCard label="TCC 2" value={inscritos.filter((i) => i.fase === 'TCC2').length} />
-                <StatCard label="Aguardando ciência" value={inscritos.filter((i) => !i.ciente).length} tone={inscritos.some((i) => !i.ciente) ? 'warning' : 'default'} hint="Orientadores ainda sem confirmar" />
-              </StatGroup>
+              {form && (
+                <PeriodoForm
+                  key={form.tipo === 'editar' ? form.periodo.semestre : 'novo'}
+                  modo={form}
+                  existentes={periodos.map((p) => p.semestre)}
+                  onCancel={() => setForm(null)}
+                  onSaved={(s) => {
+                    setForm(null)
+                    setSemestreSel(s)
+                    setAviso(form.tipo === 'novo' ? `Semestre ${s} adicionado. O calendário público e a página dos alunos já refletem o período em vigor.` : `Datas de ${s} atualizadas.`)
+                    reload()
+                  }}
+                />
+              )}
 
-              <SectionCard
-                title="Inscritos"
-                description={periodo ? `Semestre ${periodo.semestre}` : undefined}
-                action={
-                  <Button variant="secondary" size="sm" disabled={filtrados.length === 0} onClick={exportar}>
-                    <Icon name="upload" size={16} className="rotate-180" />
-                    Exportar CSV
-                  </Button>
-                }
-              >
-                {inscritos.length === 0 ? (
-                  <EmptyState title="Ninguém se inscreveu ainda" description="Os inscritos aparecem aqui assim que os alunos enviarem a inscrição." />
+              <SectionCard title="Histórico por semestre" description="Um período por semestre. Escolha um semestre para ver os inscritos.">
+                {periodos.length === 0 ? (
+                  <EmptyState title="Nenhum semestre cadastrado" description='Use "Adicionar semestre" para definir o primeiro período de inscrições.' />
                 ) : (
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-[2fr_1fr]">
-                      <Field label="Buscar por aluno, matrícula ou orientador">{(p) => <Input {...p} type="search" value={busca} onChange={(e) => setBusca(e.target.value)} />}</Field>
-                      <Field label="TCC">
-                        {(p) => (
-                          <Select {...p} value={fase} onChange={(e) => setFase(e.target.value as '' | Fase)}>
-                            <option value="">Todos</option>
-                            <option value="TCC1">TCC 1</option>
-                            <option value="TCC2">TCC 2</option>
-                          </Select>
-                        )}
-                      </Field>
-                    </div>
-                    {filtrados.length ? <Tabela itens={filtrados} onEditar={(i) => { setAviso(undefined); setAcao({ i, tipo: 'editar' }) }} onCancelar={(i) => { setAviso(undefined); setAcao({ i, tipo: 'cancelar' }) }} /> : <p role="status" className="py-4 text-center text-sm text-ink-muted">Nenhum resultado para os filtros aplicados.</p>}
-                  </div>
+                  <Historico
+                    periodos={periodos}
+                    selecionado={semestre ?? ''}
+                    onVer={(s) => { setSemestreSel(s); setBusca(''); setFase('') }}
+                    onEditar={(p) => { setAviso(undefined); setForm({ tipo: 'editar', periodo: p }) }}
+                  />
                 )}
               </SectionCard>
+
+              {doPeriodo && (
+                <>
+                  <StatGroup>
+                    <StatCard label="Inscritos" value={inscritos.length} />
+                    <StatCard label="TCC 1" value={inscritos.filter((i) => i.fase === 'TCC1').length} />
+                    <StatCard label="TCC 2" value={inscritos.filter((i) => i.fase === 'TCC2').length} />
+                    <StatCard label="Aguardando ciência" value={inscritos.filter((i) => !i.ciente).length} tone={inscritos.some((i) => !i.ciente) ? 'warning' : 'default'} hint="Orientadores ainda sem confirmar" />
+                  </StatGroup>
+
+                  <SectionCard
+                    title={`Inscritos · ${doPeriodo.semestre}`}
+                    description={editavel ? 'Período em vigor: dá para editar ou cancelar inscrições.' : 'Semestre anterior: só consulta.'}
+                    action={
+                      <Button variant="secondary" size="sm" disabled={filtrados.length === 0} onClick={exportar}>
+                        <Icon name="upload" size={16} className="rotate-180" />
+                        Exportar CSV
+                      </Button>
+                    }
+                  >
+                    {inscritos.length === 0 ? (
+                      <EmptyState title="Ninguém se inscreveu ainda" description="Os inscritos aparecem aqui assim que os alunos enviarem a inscrição." />
+                    ) : (
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-[2fr_1fr]">
+                          <Field label="Buscar por aluno, matrícula ou orientador">{(p) => <Input {...p} type="search" value={busca} onChange={(e) => setBusca(e.target.value)} />}</Field>
+                          <Field label="TCC">
+                            {(p) => (
+                              <Select {...p} value={fase} onChange={(e) => setFase(e.target.value as '' | Fase)}>
+                                <option value="">Todos</option>
+                                <option value="TCC1">TCC 1</option>
+                                <option value="TCC2">TCC 2</option>
+                              </Select>
+                            )}
+                          </Field>
+                        </div>
+                        {filtrados.length ? (
+                          <Tabela
+                            itens={filtrados}
+                            editavel={editavel}
+                            onEditar={(i) => { setAviso(undefined); setAcao({ i, tipo: 'editar' }) }}
+                            onCancelar={(i) => { setAviso(undefined); setAcao({ i, tipo: 'cancelar' }) }}
+                          />
+                        ) : (
+                          <p role="status" className="py-4 text-center text-sm text-ink-muted">Nenhum resultado para os filtros aplicados.</p>
+                        )}
+                      </div>
+                    )}
+                  </SectionCard>
+                </>
+              )}
 
               <Modal open={acao?.tipo === 'editar'} title="Editar inscrição" onClose={fechar}>
                 {acao?.tipo === 'editar' && (
