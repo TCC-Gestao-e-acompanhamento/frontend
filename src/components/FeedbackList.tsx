@@ -17,7 +17,7 @@ export function FeedbackList({ items, showAluno = false, acao }: Props) {
         <li key={f.id} className="rounded-lg border border-border p-4">
           <div className="mb-2 flex flex-wrap items-center gap-2">
             <Badge tone={f.tipo === 'correcao' ? 'warning' : 'neutral'}>{f.tipo === 'correcao' ? 'Correção solicitada' : 'Comentário'}</Badge>
-            {f.tipo === 'correcao' && <Badge tone={f.resolvido ? 'success' : 'danger'}>{f.resolvido ? 'Resolvida' : 'Pendente'}</Badge>}
+            {f.tipo === 'correcao' && <Badge tone={f.resolvido ? 'neutral' : 'success'}>{f.resolvido ? 'Resolvida' : 'Pendente'}</Badge>}
             <span className="text-sm text-ink-muted">
               {f.autorNome} · {formatDate(f.data)}
               {showAluno && <> · {f.alunoNome}</>}

@@ -4,9 +4,10 @@ import { ProfessorCard } from '../../components/ProfessorCard'
 import { useCurrentUser } from '../../auth/useAuth'
 import { Button, ButtonLink, DataBoundary, EmptyState, Field, Input, PageHeader, SectionCard, Select, Textarea } from '../../design-system'
 import { useAsync } from '../../hooks/useAsync'
+import { proximosSemestres } from '../../lib/format'
 import { createSolicitacao, getProfessorPublico, listCursos, listSolicitacoes } from '../../services/api'
 
-type Erros = Partial<Record<'titulo' | 'area' | 'descricao', string>>
+type Erros = Partial<Record<'titulo' | 'area' | 'semestre' | 'descricao', string>>
 
 export default function SolicitarOrientacaoPage() {
   const user = useCurrentUser()
@@ -23,6 +24,8 @@ export default function SolicitarOrientacaoPage() {
 
   const [titulo, setTitulo] = useState('')
   const [area, setArea] = useState('')
+  const [semestre, setSemestre] = useState('')
+  const [semestres] = useState(() => proximosSemestres())
   const [descricao, setDescricao] = useState('')
   const [mensagem, setMensagem] = useState('')
   const [erros, setErros] = useState<Erros>({})
@@ -34,14 +37,15 @@ export default function SolicitarOrientacaoPage() {
     const novos: Erros = {
       titulo: titulo.trim() ? undefined : 'Informe um título provisório.',
       area: area ? undefined : 'Selecione uma área de interesse.',
+      semestre: semestre ? undefined : 'Escolha o semestre em que pretende fazer o TCC.',
       descricao: descricao.trim().length >= 20 ? undefined : 'Descreva a proposta com pelo menos 20 caracteres.',
     }
     setErros(novos)
-    if (novos.titulo || novos.area || novos.descricao) return
+    if (novos.titulo || novos.area || novos.semestre || novos.descricao) return
     setEnviando(true)
     setErroEnvio(undefined)
     try {
-      const s = await createSolicitacao(user, { professorId, titulo, area, descricao, mensagem })
+      const s = await createSolicitacao(user, { professorId, titulo, area, semestre, descricao, mensagem })
       navigate(`/aluno/solicitacoes/${s.id}`, { replace: true, state: { enviada: true } })
     } catch (err) {
       setErroEnvio(err instanceof Error ? err.message : 'Não foi possível enviar a solicitação.')
@@ -84,6 +88,14 @@ export default function SolicitarOrientacaoPage() {
                         <Select {...p} value={area} onChange={(e) => setArea(e.target.value)}>
                           <option value="">Selecione…</option>
                           {professor.areas.map((a) => <option key={a.id} value={a.nome}>{a.nome}</option>)}
+                        </Select>
+                      )}
+                    </Field>
+                    <Field label="Semestre pretendido" error={erros.semestre} hint="Em qual semestre você pretende fazer o TCC com este professor.">
+                      {(p) => (
+                        <Select {...p} value={semestre} onChange={(e) => setSemestre(e.target.value)}>
+                          <option value="">Selecione…</option>
+                          {semestres.map((sem) => <option key={sem} value={sem}>{sem}</option>)}
                         </Select>
                       )}
                     </Field>

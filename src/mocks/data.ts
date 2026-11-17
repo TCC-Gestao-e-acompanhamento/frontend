@@ -4,6 +4,7 @@ import type {
   FeedbackTipo,
   BancaSituacao,
   MembroBanca,
+  PosicaoPdf,
   TccRecord,
   User,
 } from '../types'
@@ -19,6 +20,11 @@ export function addDays(n: number): string {
   const d = new Date()
   d.setDate(d.getDate() + n)
   return iso(d)
+}
+
+/** Endereço de um arquivo da pasta public, respeitando a base do site (ex.: /frontend/ no GitHub Pages). */
+function publico(caminho: string): string {
+  return `${import.meta.env.BASE_URL}${caminho}`
 }
 
 export const users: User[] = [
@@ -94,18 +100,20 @@ export interface DocumentoRecord {
   tipo: string
   enviadoEm: string
   status: DocumentoStatus
+  /** PDF de exemplo para visualização com comentários. */
+  arquivoUrl?: string
 }
 
 export const documentos: DocumentoRecord[] = [
-  { id: 'd1', tccId: 't1', nome: 'Monografia', versao: 1, tipo: 'Monografia', enviadoEm: addDays(-30), status: 'correcao' },
-  { id: 'd2', tccId: 't1', nome: 'Monografia', versao: 2, tipo: 'Monografia', enviadoEm: addDays(-15), status: 'correcao' },
-  { id: 'd3', tccId: 't1', nome: 'Monografia', versao: 3, tipo: 'Monografia', enviadoEm: addDays(-2), status: 'em_analise' },
-  { id: 'd4', tccId: 't2', nome: 'Projeto de pesquisa', versao: 2, tipo: 'Projeto', enviadoEm: addDays(-22), status: 'aprovado' },
-  { id: 'd5', tccId: 't2', nome: 'Revisão bibliográfica', versao: 1, tipo: 'Capítulo', enviadoEm: addDays(-1), status: 'em_analise' },
-  { id: 'd6', tccId: 't3', nome: 'Projeto de pesquisa', versao: 1, tipo: 'Projeto', enviadoEm: addDays(-10), status: 'correcao' },
-  { id: 'd7', tccId: 't4', nome: 'Relatório parcial', versao: 1, tipo: 'Relatório', enviadoEm: addDays(-9), status: 'aprovado' },
-  { id: 'd8', tccId: 't5', nome: 'Projeto do TCC 1', versao: 1, tipo: 'Projeto', enviadoEm: addDays(-3), status: 'em_analise' },
-  { id: 'd9', tccId: 't6', nome: 'Monografia', versao: 4, tipo: 'Monografia', enviadoEm: addDays(-1), status: 'em_analise' },
+  { id: 'd1', tccId: 't1', nome: 'Monografia', versao: 1, tipo: 'Monografia', enviadoEm: addDays(-30), status: 'substituida', arquivoUrl: publico('exemplos/monografia-exemplo.pdf') },
+  { id: 'd2', tccId: 't1', nome: 'Monografia', versao: 2, tipo: 'Monografia', enviadoEm: addDays(-15), status: 'substituida', arquivoUrl: publico('exemplos/monografia-exemplo.pdf') },
+  { id: 'd3', tccId: 't1', nome: 'Monografia', versao: 3, tipo: 'Monografia', enviadoEm: addDays(-2), status: 'correcao', arquivoUrl: publico('exemplos/monografia-exemplo.pdf') },
+  { id: 'd4', tccId: 't2', nome: 'Projeto de pesquisa', versao: 2, tipo: 'Projeto', enviadoEm: addDays(-22), status: 'aprovado', arquivoUrl: publico('exemplos/capitulo-exemplo.pdf') },
+  { id: 'd5', tccId: 't2', nome: 'Revisão bibliográfica', versao: 1, tipo: 'Capítulo', enviadoEm: addDays(-1), status: 'pendente_revisao', arquivoUrl: publico('exemplos/capitulo-exemplo.pdf') },
+  { id: 'd6', tccId: 't3', nome: 'Projeto de pesquisa', versao: 1, tipo: 'Projeto', enviadoEm: addDays(-10), status: 'correcao', arquivoUrl: publico('exemplos/capitulo-exemplo.pdf') },
+  { id: 'd7', tccId: 't4', nome: 'Relatório parcial', versao: 1, tipo: 'Relatório', enviadoEm: addDays(-9), status: 'aprovado', arquivoUrl: publico('exemplos/capitulo-exemplo.pdf') },
+  { id: 'd8', tccId: 't5', nome: 'Projeto do TCC 1', versao: 1, tipo: 'Projeto', enviadoEm: addDays(-3), status: 'pendente_revisao', arquivoUrl: publico('exemplos/capitulo-exemplo.pdf') },
+  { id: 'd9', tccId: 't6', nome: 'Monografia', versao: 4, tipo: 'Monografia', enviadoEm: addDays(-1), status: 'pendente_revisao', arquivoUrl: publico('exemplos/monografia-exemplo.pdf') },
 ]
 
 export interface FeedbackRecord {
@@ -124,7 +132,7 @@ export const feedbacks: FeedbackRecord[] = [
   { id: 'f2', tccId: 't1', documentoId: 'd2', autorId: 'o1', data: addDays(-13), texto: 'Reforçar a descrição da metodologia: critérios de seleção dos portais e instrumento de avaliação.', tipo: 'correcao', resolvido: false },
   { id: 'f3', tccId: 't2', documentoId: 'd4', autorId: 'o1', data: addDays(-20), texto: 'Projeto aprovado. Ampliar a lista de bases de dados na revisão.', tipo: 'comentario', resolvido: true },
   { id: 'f4', tccId: 't3', documentoId: 'd6', autorId: 'o1', data: addDays(-8), texto: 'Objetivos específicos muito amplos. Reescrever e alinhar com o cronograma.', tipo: 'correcao', resolvido: false },
-  { id: 'f5', tccId: 't6', documentoId: 'd9', autorId: 'o2', data: addDays(-12), texto: 'Corrigir referências fora do padrão ABNT.', tipo: 'correcao', resolvido: true },
+  { id: 'f5', tccId: 't6', autorId: 'o2', data: addDays(-12), texto: 'Corrigir referências fora do padrão ABNT.', tipo: 'correcao', resolvido: true },
 ]
 
 export interface BancaRecord {
@@ -231,6 +239,7 @@ export interface SolicitacaoRecord {
   alunoId: string
   titulo: string
   area: string
+  semestre: string
   descricao: string
   mensagem?: string
   status: 'pendente' | 'aceita' | 'recusada' | 'cancelada'
@@ -240,11 +249,11 @@ export interface SolicitacaoRecord {
 }
 
 export const solicitacoes: SolicitacaoRecord[] = [
-  { id: 's1', professorId: 'o3', alunoId: 'a1', titulo: 'Classificação de textos de ouvidoria com aprendizado de máquina', area: 'Inteligência Artificial', descricao: 'Pretendo comparar modelos de classificação para triagem automática de manifestações em canais de ouvidoria pública.', mensagem: 'Tenho disponibilidade para reuniões às terças.', status: 'pendente', enviadaEm: addDays(-2) },
-  { id: 's2', professorId: 'o2', alunoId: 'a1', titulo: 'Análise de vulnerabilidades em portais públicos', area: 'Segurança da Informação', descricao: 'Avaliar vulnerabilidades comuns em portais de serviços públicos.', status: 'recusada', enviadaEm: addDays(-20), respondidaEm: addDays(-18), resposta: 'No momento não tenho vagas para o semestre. Recomendo procurar o Prof. Eduardo.' },
-  { id: 's3', professorId: 'o1', alunoId: 'a8', titulo: 'Migração de monolito para microsserviços em sistema acadêmico', area: 'Engenharia de Software', descricao: 'Estudo de caso de decomposição de um sistema acadêmico legado em microsserviços, avaliando impactos em manutenção e desempenho.', mensagem: 'Já li seus artigos sobre arquitetura e gostaria de aprofundar.', status: 'pendente', enviadaEm: addDays(-1) },
-  { id: 's4', professorId: 'o1', alunoId: 'a9', titulo: 'Testes automatizados em aplicações web', area: 'Engenharia de Software', descricao: 'Comparar estratégias de teste end-to-end e seu custo de manutenção em projetos pequenos.', status: 'pendente', enviadaEm: addDays(-4) },
-  { id: 's5', professorId: 'o1', alunoId: 'a2', titulo: 'Detecção de fraudes em transações com aprendizado de máquina', area: 'Inteligência Artificial', descricao: 'Aplicar modelos de aprendizado supervisionado à detecção de fraudes em transações financeiras.', status: 'aceita', enviadaEm: addDays(-60), respondidaEm: addDays(-57), resposta: 'Aceito. Vamos alinhar o escopo na primeira reunião.' },
+  { id: 's1', professorId: 'o3', alunoId: 'a1', titulo: 'Classificação de textos de ouvidoria com aprendizado de máquina', area: 'Inteligência Artificial', semestre: '2027/1', descricao: 'Pretendo comparar modelos de classificação para triagem automática de manifestações em canais de ouvidoria pública.', mensagem: 'Tenho disponibilidade para reuniões às terças.', status: 'pendente', enviadaEm: addDays(-2) },
+  { id: 's2', professorId: 'o2', alunoId: 'a1', titulo: 'Análise de vulnerabilidades em portais públicos', area: 'Segurança da Informação', semestre: '2026/2', descricao: 'Avaliar vulnerabilidades comuns em portais de serviços públicos.', status: 'recusada', enviadaEm: addDays(-20), respondidaEm: addDays(-18), resposta: 'No momento não tenho vagas para o semestre. Recomendo procurar o Prof. Eduardo.' },
+  { id: 's3', professorId: 'o1', alunoId: 'a8', titulo: 'Migração de monolito para microsserviços em sistema acadêmico', area: 'Engenharia de Software', semestre: '2027/1', descricao: 'Estudo de caso de decomposição de um sistema acadêmico legado em microsserviços, avaliando impactos em manutenção e desempenho.', mensagem: 'Já li seus artigos sobre arquitetura e gostaria de aprofundar.', status: 'pendente', enviadaEm: addDays(-1) },
+  { id: 's4', professorId: 'o1', alunoId: 'a9', titulo: 'Testes automatizados em aplicações web', area: 'Engenharia de Software', semestre: '2027/1', descricao: 'Comparar estratégias de teste end-to-end e seu custo de manutenção em projetos pequenos.', status: 'pendente', enviadaEm: addDays(-4) },
+  { id: 's5', professorId: 'o1', alunoId: 'a2', titulo: 'Detecção de fraudes em transações com aprendizado de máquina', area: 'Inteligência Artificial', semestre: '2026/2', descricao: 'Aplicar modelos de aprendizado supervisionado à detecção de fraudes em transações financeiras.', status: 'aceita', enviadaEm: addDays(-60), respondidaEm: addDays(-57), resposta: 'Aceito. Vamos alinhar o escopo na primeira reunião.' },
 ]
 
 /* ---------- Inscrição no TCC (dados fictícios) ---------- */
@@ -272,4 +281,76 @@ export const inscricoes: InscricaoRecord[] = [
   { id: 'i3', semestre: '2027/1', alunoId: 'a9', fase: 'TCC1', orientadorId: 'o1', orientadorNome: 'Prof. Dr. Carlos Andrade', orientadorEmail: 'carlos.andrade@unb.br', status: 'ativa', criadaEm: addDays(-1) },
   { id: 'i4', semestre: '2027/1', alunoId: 'a5', fase: 'TCC2', orientadorId: 'o2', orientadorNome: 'Profa. Dra. Helena Prado', orientadorEmail: 'helena.prado@unb.br', status: 'ativa', criadaEm: addDays(-3) },
   { id: 'i5', semestre: '2027/1', alunoId: 'a7', fase: 'TCC1', orientadorNome: 'Prof. Dr. Henrique Lacerda', orientadorEmail: 'henrique.lacerda@unb.br', status: 'ativa', criadaEm: addDays(-1) },
+]
+
+/* ---------- Registro de orientações e anotações (dados fictícios) ---------- */
+
+export interface OrientacaoRecord {
+  id: string
+  tccId: string
+  data: string
+  formato: 'presencial' | 'online'
+  resumo: string
+  combinados?: string
+  proximoEncontro?: string
+}
+
+export const orientacoes: OrientacaoRecord[] = [
+  { id: 'or1', tccId: 't1', data: addDays(-40), formato: 'online', resumo: 'Definição do escopo: portais de serviços públicos mais acessados e critérios de seleção.', combinados: 'Aluna lista os portais candidatos e os critérios até a próxima reunião.', proximoEncontro: addDays(-21) },
+  { id: 'or2', tccId: 't1', data: addDays(-21), formato: 'presencial', resumo: 'Revisão da metodologia. Discutimos ferramentas de avaliação automatizada e inspeção manual.', combinados: 'Detalhar o roteiro de inspeção e enviar a versão 2 da monografia.', proximoEncontro: addDays(-7) },
+  { id: 'or3', tccId: 't1', data: addDays(-7), formato: 'online', resumo: 'Análise dos resultados preliminares e organização do capítulo de discussão.', combinados: 'Incluir razão de contraste adotada. Enviar versão 3 antes da banca.', proximoEncontro: addDays(2) },
+  { id: 'or4', tccId: 't2', data: addDays(-30), formato: 'presencial', resumo: 'Escolha da base de dados e das métricas de avaliação dos modelos de detecção de fraude.' },
+  { id: 'or5', tccId: 't2', data: addDays(-9), formato: 'online', resumo: 'Revisão bibliográfica: ampliar a lista de bases consultadas.', combinados: 'Entregar a revisão bibliográfica completa.', proximoEncontro: addDays(5) },
+  { id: 'or6', tccId: 't3', data: addDays(-14), formato: 'online', resumo: 'Objetivos específicos muito amplos; reescrever alinhando ao cronograma.', combinados: 'Reescrever objetivos e reenviar o projeto.' },
+  { id: 'or7', tccId: 't4', data: addDays(-12), formato: 'presencial', resumo: 'Arquitetura inicial dos microsserviços e plano de testes de desempenho.' },
+  { id: 'or8', tccId: 't4', data: addDays(-3), formato: 'online', resumo: 'Acompanhamento do desenvolvimento; ajustar a camada de comunicação entre serviços.', proximoEncontro: addDays(14) },
+  { id: 'or9', tccId: 't5', data: addDays(-10), formato: 'presencial', resumo: 'Mecânicas de gamificação e forma de avaliar o engajamento dos alunos.' },
+  { id: 'or10', tccId: 't6', data: addDays(-18), formato: 'online', resumo: 'Plano de comparação de estratégias de segurança em APIs REST.' },
+  { id: 'or11', tccId: 't6', data: addDays(-5), formato: 'presencial', resumo: 'Revisão da monografia antes de enviar aos membros da banca.', combinados: 'Corrigir referências e enviar cópia à banca.', proximoEncontro: addDays(1) },
+]
+
+const MONOGRAFIA = [
+  'Este trabalho investiga o nível de acessibilidade de portais de serviços públicos brasileiros, com foco em usuários de leitores de tela e em pessoas com baixa visão.',
+  'A metodologia combina avaliação automatizada com ferramentas de análise e inspeção manual por especialistas. Foram selecionados dez portais com maior volume de acessos em 2025.',
+  'Os resultados indicam que a maior parte das falhas está relacionada a contraste insuficiente, ausência de texto alternativo e formulários sem rótulos associados.',
+  'A literatura recente mostra que a adoção das diretrizes WCAG ainda é parcial no setor público, em especial em serviços digitais criados antes da obrigatoriedade legal.',
+  'Como trabalho futuro, propõe-se ampliar a amostra de portais e incluir testes com usuários reais, de modo a validar os achados da avaliação técnica.',
+  'Conclui-se que investimentos em capacitação das equipes e em processos de revisão contínua são mais efetivos do que correções pontuais.',
+]
+
+const GENERICO = [
+  'Este documento apresenta o contexto do problema, a motivação do trabalho e os objetivos que orientam as próximas etapas do TCC.',
+  'A proposta metodológica descreve as técnicas, as ferramentas e os critérios que serão usados para coletar e analisar os dados.',
+  'O cronograma prevê entregas parciais, com revisão do orientador a cada etapa concluída.',
+  'Por fim, são listadas as referências iniciais consultadas, que serão ampliadas ao longo do semestre.',
+]
+
+/** Texto fictício dos documentos (o protótipo não abre PDFs de verdade). */
+export function conteudoDoDocumento(tipo: string): string[] {
+  return tipo === 'Monografia' ? MONOGRAFIA : GENERICO
+}
+
+export interface AnotacaoRecord {
+  id: string
+  documentoId: string
+  paragrafo: number
+  inicio: number
+  fim: number
+  autorId: string
+  tipo: 'comentario' | 'correcao'
+  texto: string
+  criadaEm: string
+  resolvida: boolean
+  respostas: { id: string; autorId: string; texto: string; data: string }[]
+  /** Só para comentários em PDF. */
+  posicaoPdf?: PosicaoPdf
+  trecho?: string
+  imagem?: string
+}
+
+export const anotacoes: AnotacaoRecord[] = [
+  { id: 'an1', documentoId: 'd3', paragrafo: -1, inicio: 0, fim: 0, trecho: 'inspeção manual por especialistas', posicaoPdf: {"boundingRect": {"x1": 70.87, "y1": 405.1, "x2": 524.41, "y2": 435.88, "width": 595.28, "height": 841.89, "pageNumber": 1}, "rects": [{"x1": 481.1, "y1": 405.1, "x2": 524.41, "y2": 415.66, "width": 595.28, "height": 841.89, "pageNumber": 1}, {"x1": 70.87, "y1": 425.33, "x2": 200.08, "y2": 435.88, "width": 595.28, "height": 841.89, "pageNumber": 1}], "pageNumber": 1}, autorId: 'o1', tipo: 'correcao', texto: 'Detalhar quem são os especialistas e qual foi o roteiro da inspeção.', criadaEm: addDays(-1), resolvida: false, respostas: [] },
+  { id: 'an2', documentoId: 'd3', paragrafo: -1, inicio: 0, fim: 0, trecho: 'contraste insuficiente', posicaoPdf: {"boundingRect": {"x1": 70.87, "y1": 526.31, "x2": 524.41, "y2": 557.09, "width": 595.28, "height": 841.89, "pageNumber": 1}, "rects": [{"x1": 441.96, "y1": 526.31, "x2": 524.41, "y2": 536.87, "width": 595.28, "height": 841.89, "pageNumber": 1}, {"x1": 70.87, "y1": 546.54, "x2": 103.71, "y2": 557.09, "width": 595.28, "height": 841.89, "pageNumber": 1}], "pageNumber": 1}, autorId: 'o1', tipo: 'comentario', texto: 'Cite a razão de contraste mínima adotada (WCAG AA, 4,5:1).', criadaEm: addDays(-1), resolvida: false, respostas: [] },
+  { id: 'an3', documentoId: 'd3', paragrafo: -1, inicio: 0, fim: 0, trecho: 'validar os achados da avaliação técnica', posicaoPdf: {"boundingRect": {"x1": 159.06, "y1": 227.86, "x2": 361.44, "y2": 238.42, "width": 595.28, "height": 841.89, "pageNumber": 2}, "rects": [{"x1": 159.06, "y1": 227.86, "x2": 361.44, "y2": 238.42, "width": 595.28, "height": 841.89, "pageNumber": 2}], "pageNumber": 2}, autorId: 'o1', tipo: 'correcao', texto: 'Explique como esses testes seriam conduzidos.', criadaEm: addDays(-1), resolvida: true, respostas: [{ id: 'ar1', autorId: 'a1', texto: 'Incluí um parágrafo com o plano de testes na seção 4.', data: addDays(0) }] },
+  { id: 'an4', documentoId: 'd2', paragrafo: -1, inicio: 0, fim: 0, trecho: 'baixa visão', posicaoPdf: {"boundingRect": {"x1": 373.33, "y1": 324.34, "x2": 433.89, "y2": 334.89, "width": 595.28, "height": 841.89, "pageNumber": 1}, "rects": [{"x1": 373.33, "y1": 324.34, "x2": 433.89, "y2": 334.89, "width": 595.28, "height": 841.89, "pageNumber": 1}], "pageNumber": 1}, autorId: 'o1', tipo: 'comentario', texto: 'Defina o público-alvo com mais precisão.', criadaEm: addDays(-13), resolvida: true, respostas: [] },
 ]

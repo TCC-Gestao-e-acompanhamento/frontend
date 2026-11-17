@@ -15,10 +15,10 @@ const MAPS = {
     atrasada: ['danger', 'Atrasada'],
   } satisfies Record<AtividadeStatus, [Tone, string]>,
   documento: {
-    enviado: ['neutral', 'Enviado'],
-    em_analise: ['brand', 'Em análise'],
+    pendente_revisao: ['brand', 'Pendente revisão'],
     correcao: ['warning', 'Correção solicitada'],
-    aprovado: ['success', 'Aprovado'],
+    aprovado: ['success', 'Aprovada'],
+    substituida: ['neutral', 'Substituída'],
   } satisfies Record<DocumentoStatus, [Tone, string]>,
   solicitacao: {
     pendente: ['warning', 'Pendente'],
@@ -33,6 +33,7 @@ const MAPS = {
   } satisfies Record<PeriodoSituacao, [Tone, string]>,
   banca: {
     a_definir: ['neutral', 'A definir'],
+    proposta: ['warning', 'Proposta do aluno'],
     agendada: ['brand', 'Agendada'],
     realizada: ['success', 'Realizada'],
   } satisfies Record<BancaSituacao, [Tone, string]>,

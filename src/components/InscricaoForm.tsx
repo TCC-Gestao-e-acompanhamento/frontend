@@ -70,8 +70,8 @@ export function InscricaoForm({ professores, alunoNome, matricula, inicial, suge
         onChange={(v) => setFase(v)}
         error={erros.fase}
         options={[
-          { value: 'TCC1', label: 'TCC 1', hint: 'Projeto e revisão bibliográfica' },
-          { value: 'TCC2', label: 'TCC 2', hint: 'Desenvolvimento, monografia e defesa' },
+          { value: 'TCC1', label: 'TCC 1' },
+          { value: 'TCC2', label: 'TCC 2' },
         ]}
       />
 

@@ -46,6 +46,13 @@ body {
   color: var(--color-brand-800);
 }
 
+/* O texto do PDF é uma camada invisível sobre a imagem da página: se a seleção pintasse o texto, ele
+   apareceria duplicado e desalinhado. Aqui só o fundo da seleção aparece. */
+.textLayer ::selection {
+  background: rgb(0 51 102 / 0.3);
+  color: transparent;
+}
+
 input,
 textarea {
   caret-color: var(--color-brand-700);
