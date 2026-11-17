@@ -27,13 +27,36 @@ export interface TccRecord {
   alunoId: string
   orientadorId: string
   semestre: string
-  /** Índice da etapa atual no ciclo completo (0-7). */
+  /** Índice da etapa atual na lista de etapas do trabalho. */
   etapaIndex: number
+  /** Etapas definidas pelo orientador para este trabalho; sem isso vale a lista padrão. */
+  etapasDef?: EtapaDef[]
+}
+
+/** Etapa como o orientador a define: nome, em qual TCC entra e, se quiser, a data. */
+export interface EtapaDef {
+  nome: string
+  fase: Fase
+  prazo?: string
+}
+
+export interface DefinirEtapas {
+  etapas: EtapaDef[]
+  /** Índice da etapa em que o trabalho está agora. */
+  atual: number
+}
+
+export interface NovaAtividade {
+  tccId: string
+  titulo: string
+  tipo: 'entrega' | 'reuniao' | 'marco'
+  prazo: string
 }
 
 export interface Etapa {
   nome: string
   fase: Fase
+  prazo?: string
   situacao: 'concluida' | 'atual' | 'futura'
 }
 
@@ -224,6 +247,16 @@ export interface PeriodoInscricao {
   inicio: string
   fim: string
   situacao: PeriodoSituacao
+}
+
+/** Linha do histórico de inscrições: um período por semestre, com os números de inscritos. */
+export interface PeriodoResumo extends PeriodoInscricao {
+  /** É o período em vigor: o que está aberto ou, na falta dele, o próximo ou o mais recente. */
+  ativo: boolean
+  total: number
+  tcc1: number
+  tcc2: number
+  aguardandoCiencia: number
 }
 
 export interface PeriodoInput {

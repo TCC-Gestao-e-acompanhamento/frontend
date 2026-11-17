@@ -258,8 +258,18 @@ export const solicitacoes: SolicitacaoRecord[] = [
 
 /* ---------- Inscrição no TCC (dados fictícios) ---------- */
 
-/** Período definido pela coordenação para o semestre seguinte. Editável. */
-export const periodoInscricao = { semestre: '2027/1', inicio: addDays(-3), fim: addDays(7) }
+/** Um período de inscrições por semestre: a coordenação adiciona o do semestre e o histórico fica. */
+export interface PeriodoRecord {
+  semestre: string
+  inicio: string
+  fim: string
+}
+
+export const periodosInscricao: PeriodoRecord[] = [
+  { semestre: '2027/1', inicio: addDays(-3), fim: addDays(7) },
+  { semestre: '2026/1', inicio: addDays(-310), fim: addDays(-292) },
+  { semestre: '2025/2', inicio: addDays(-490), fim: addDays(-472) },
+]
 
 export interface InscricaoRecord {
   id: string
@@ -281,6 +291,11 @@ export const inscricoes: InscricaoRecord[] = [
   { id: 'i3', semestre: '2027/1', alunoId: 'a9', fase: 'TCC1', orientadorId: 'o1', orientadorNome: 'Prof. Dr. Carlos Andrade', orientadorEmail: 'carlos.andrade@unb.br', status: 'ativa', criadaEm: addDays(-1) },
   { id: 'i4', semestre: '2027/1', alunoId: 'a5', fase: 'TCC2', orientadorId: 'o2', orientadorNome: 'Profa. Dra. Helena Prado', orientadorEmail: 'helena.prado@unb.br', status: 'ativa', criadaEm: addDays(-3) },
   { id: 'i5', semestre: '2027/1', alunoId: 'a7', fase: 'TCC1', orientadorNome: 'Prof. Dr. Henrique Lacerda', orientadorEmail: 'henrique.lacerda@unb.br', status: 'ativa', criadaEm: addDays(-1) },
+  { id: 'h5', semestre: '2026/1', alunoId: 'a1', fase: 'TCC1', orientadorId: 'o1', orientadorNome: 'Prof. Dr. Carlos Andrade', orientadorEmail: 'carlos.andrade@unb.br', status: 'ativa', criadaEm: addDays(-305), cienteEm: addDays(-304) },
+  { id: 'h6', semestre: '2026/1', alunoId: 'a2', fase: 'TCC1', orientadorId: 'o1', orientadorNome: 'Prof. Dr. Carlos Andrade', orientadorEmail: 'carlos.andrade@unb.br', status: 'ativa', criadaEm: addDays(-304), cienteEm: addDays(-303) },
+  { id: 'h7', semestre: '2026/1', alunoId: 'a5', fase: 'TCC1', orientadorId: 'o2', orientadorNome: 'Profa. Dra. Helena Prado', orientadorEmail: 'helena.prado@unb.br', status: 'ativa', criadaEm: addDays(-300), cienteEm: addDays(-299) },
+  { id: 'h8', semestre: '2025/2', alunoId: 'a2', fase: 'TCC1', orientadorId: 'o2', orientadorNome: 'Profa. Dra. Helena Prado', orientadorEmail: 'helena.prado@unb.br', status: 'ativa', criadaEm: addDays(-485), cienteEm: addDays(-484) },
+  { id: 'h9', semestre: '2025/2', alunoId: 'a3', fase: 'TCC1', orientadorId: 'o1', orientadorNome: 'Prof. Dr. Carlos Andrade', orientadorEmail: 'carlos.andrade@unb.br', status: 'ativa', criadaEm: addDays(-483), cienteEm: addDays(-482) },
 ]
 
 /* ---------- Registro de orientações e anotações (dados fictícios) ---------- */
