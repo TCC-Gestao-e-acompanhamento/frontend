@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useImperativeHandle, useLayoutEffect, useRef, useState, type PointerEvent as ReactPointerEvent, type Ref } from 'react'
+import { useCallback, useEffect, useImperativeHandle, useLayoutEffect, useRef, useState, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent, type Ref } from 'react'
 import * as pdfjs from 'pdfjs-dist'
 import type { PDFDocumentProxy } from 'pdfjs-dist'
 import workerSrc from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
@@ -71,6 +71,9 @@ export function VisualizadorPdf({
   const [base, setBase] = useState<{ w: number; h: number } | null>(null)
   const [largura, setLargura] = useState(0)
   const [area, setArea] = useState<AreaTemporaria | null>(null)
+  const [sobre, setSobre] = useState<string>()
+  // onde o botão do mouse desceu: soltar longe dali é arrasto (seleção), não clique
+  const descida = useRef<{ x: number; y: number } | null>(null)
   const arrasto = useRef<{ pagina: number; el: HTMLElement; x0: number; y0: number } | null>(null)
 
   // abre o PDF; cada URL tem a sua carga e a anterior é descartada
@@ -231,6 +234,42 @@ export function VisualizadorPdf({
     onSelecionar({ posicao: { pageNumber: a.pagina, rects: [rect], boundingRect: rect }, imagem: recortar(a.el, rect) })
   }
 
+  /* ---------- clique no trecho destacado ---------- */
+
+  /** Comentário cujo trecho está sob o ponteiro (qualquer parte do trecho, não só o número). */
+  const destaqueEm = (alvo: EventTarget, clientX: number, clientY: number): string | undefined => {
+    const pagina = (alvo as Element).closest?.<HTMLElement>('[data-pagina]')
+    if (!pagina) return undefined
+    const caixa = pagina.getBoundingClientRect()
+    const porPonto = PX_POR_PONTO * escala
+    const x = (clientX - caixa.left) / porPonto
+    const y = (clientY - caixa.top) / porPonto
+    const larguraPt = caixa.width / porPonto
+    const alturaPt = caixa.height / porPonto
+    return destaques.find(
+      (d) =>
+        d.pagina === Number(pagina.dataset.pagina) &&
+        d.rects.some((r) => {
+          const sx = larguraPt / (r.width || larguraPt)
+          const sy = alturaPt / (r.height || alturaPt)
+          return x >= r.x1 * sx && x <= r.x2 * sx && y >= r.y1 * sy && y <= r.y2 * sy
+        }),
+    )?.id
+  }
+  const aoPassar = (e: ReactMouseEvent<HTMLDivElement>) => {
+    if (arrasto.current) return
+    const id = destaqueEm(e.target, e.clientX, e.clientY)
+    setSobre((atual) => (atual === id ? atual : id))
+  }
+  const aoClicar = (e: ReactMouseEvent<HTMLDivElement>) => {
+    if ((e.target as Element).closest('button')) return // o número do comentário trata o próprio clique
+    if (descida.current && Math.hypot(e.clientX - descida.current.x, e.clientY - descida.current.y) > 4) return
+    const sel = window.getSelection()
+    if (sel && !sel.isCollapsed) return // arrastar para selecionar texto não é clique
+    const id = destaqueEm(e.target, e.clientX, e.clientY)
+    if (id) onClicarDestaque(id)
+  }
+
   const porPagina = (n: number) => destaques.filter((d) => d.pagina === n)
 
   if (erro) return <div className="p-6"><ErrorState message="Não foi possível abrir este PDF." /></div>
@@ -245,6 +284,12 @@ export function VisualizadorPdf({
       tabIndex={0}
       onScroll={aoRolar}
       onMouseUp={capturarTexto}
+      onMouseDown={(e) => {
+        descida.current = { x: e.clientX, y: e.clientY }
+      }}
+      onMouseMove={aoPassar}
+      onMouseLeave={() => setSobre(undefined)}
+      onClick={aoClicar}
       onTouchEnd={() => window.setTimeout(capturarTexto, 300)}
       onPointerDown={aoPressionar}
       onPointerMove={aoMover}
@@ -253,7 +298,7 @@ export function VisualizadorPdf({
         arrasto.current = null
         setArea(null)
       }}
-      className={`${alturaClasse} relative overflow-auto bg-surface-muted p-3`}
+      className={`${alturaClasse} relative overflow-auto bg-surface-muted p-3 ${sobre ? '[&_.textLayer_span]:cursor-pointer!' : ''}`}
     >
       <div style={{ width: base.w * PX_POR_PONTO * escala, minWidth: '100%' }} className="mx-auto">
         {paginas.map((n) => (
@@ -268,6 +313,7 @@ export function VisualizadorPdf({
             pendente={pendente && pendente.pageNumber === n ? pendente.rects : null}
             area={area && area.pagina === n ? area : null}
             ativa={ativa}
+            sobre={sobre}
             onClicarDestaque={onClicarDestaque}
           />
         ))}

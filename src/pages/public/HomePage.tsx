@@ -89,7 +89,7 @@ export default function HomePage() {
             state={eventos.state}
             reload={eventos.reload}
             isEmpty={(d) => d.filter((e) => daysUntil(e.data) >= 0).length === 0}
-            empty={{ title: 'Nenhuma data próxima', description: 'Prazos e defesas aparecem aqui assim que forem divulgados.' }}
+            empty={{ title: 'Nenhuma data próxima', description: 'Defesas e inscrições aparecem aqui assim que forem divulgados.' }}
           >
             {(d) => (
               <ul className="divide-y divide-border rounded-card border border-border p-5">

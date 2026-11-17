@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useCurrentUser, useAuth } from '../auth/useAuth'
 import { Badge, Button, Icon } from '../design-system'
-import { contarInscricoesNovas } from '../services/api'
+import { contarInscricoesNovas, contarSolicitacoesPendentes } from '../services/api'
 import { cn, initials } from '../lib/format'
 import { NAV, ROLE_LABEL } from '../routes/navigation'
 import { Brand } from './Brand'
@@ -19,10 +19,10 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [openAt, setOpenAt] = useState<string | null>(null)
   const open = openAt === pathname
   // Contador de inscrições novas (só orientador). Guarda o último valor, então não pisca ao navegar.
-  const [totalNovas, setTotalNovas] = useState(0)
+  const [totais, setTotais] = useState({ inscricoes: 0, solicitacoes: 0 })
   const refreshContador = useCallback(() => {
     if (user.role !== 'orientador') return
-    contarInscricoesNovas(user).then(setTotalNovas, () => {})
+    Promise.all([contarInscricoesNovas(user), contarSolicitacoesPendentes(user)]).then(([inscricoes, solicitacoes]) => setTotais({ inscricoes, solicitacoes }), () => {})
   }, [user])
   useEffect(() => {
     refreshContador()
@@ -50,10 +50,11 @@ export function AppShell({ children }: { children: ReactNode }) {
         >
           <Icon name={item.icon} />
           {item.label}
-          {item.contador && totalNovas > 0 && (
+          {item.contador && totais[item.contador] > 0 && (
             <>
-              <span aria-hidden="true" className="ml-auto rounded-full bg-warning px-2 py-0.5 text-xs font-semibold text-white">{totalNovas}</span>
-              <span className="sr-only">, {totalNovas} {totalNovas === 1 ? 'nova' : 'novas'}</span>
+              {/* inscrições novas em laranja; solicitações aguardando resposta em azul */}
+              <span aria-hidden="true" className={cn('ml-auto rounded-full px-2 py-0.5 text-xs font-semibold text-white', item.contador === 'inscricoes' ? 'bg-warning' : 'bg-brand-600')}>{totais[item.contador]}</span>
+              <span className="sr-only">, {totais[item.contador]} {item.contador === 'inscricoes' ? (totais[item.contador] === 1 ? 'nova' : 'novas') : 'aguardando resposta'}</span>
             </>
           )}
         </NavLink>

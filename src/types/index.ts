@@ -27,13 +27,40 @@ export interface TccRecord {
   alunoId: string
   orientadorId: string
   semestre: string
-  /** Índice da etapa atual no ciclo completo (0-7). */
+  /** Índice da etapa atual na lista de etapas do trabalho; igual ao total quando todas foram concluídas. */
   etapaIndex: number
+  /** Etapas definidas pelo orientador para este trabalho; sem isso vale a lista padrão. */
+  etapasDef?: EtapaDef[]
+  /** Quem concluiu cada etapa e quando, pelo nome da etapa em minúsculas. */
+  conclusoes?: Record<string, { em: string; porId: string }>
+}
+
+/** Etapa como o orientador a define: nome, em qual TCC entra e, se quiser, a data. */
+export interface EtapaDef {
+  nome: string
+  fase: Fase
+  prazo?: string
+}
+
+export interface DefinirEtapas {
+  etapas: EtapaDef[]
+  /** Índice da etapa em que o trabalho está agora. */
+  atual: number
+}
+
+export interface NovaAtividade {
+  tccId: string
+  titulo: string
+  tipo: 'entrega' | 'reuniao' | 'marco'
+  prazo: string
 }
 
 export interface Etapa {
   nome: string
   fase: Fase
+  prazo?: string
+  concluidaEm?: string
+  concluidaPor?: string
   situacao: 'concluida' | 'atual' | 'futura'
 }
 
@@ -77,6 +104,8 @@ export interface Documento {
   correcoesPendentes?: number
   /** Não existe versão mais nova do mesmo documento: só ela pode ser aprovada. */
   ultimaVersao?: boolean
+  /** Versão mais nova do mesmo documento (só quando esta já não é a última). */
+  versaoMaisRecente?: { id: string; versao: number; enviadoEm: string }
   /** Endereço do PDF para visualização (quando o arquivo enviado é um PDF). */
   arquivoUrl?: string
 }
@@ -109,13 +138,6 @@ export interface Banca {
   data?: string
   local?: string
   membros: MembroBanca[]
-}
-
-export interface PrazoInstitucional {
-  id: string
-  titulo: string
-  data: string
-  fase: Fase
 }
 
 export interface NovoDocumento {
@@ -210,8 +232,7 @@ export interface EventoCalendario {
   id: string
   data: string
   titulo: string
-  tipo: 'prazo' | 'defesa' | 'inscricao'
-  fase?: Fase
+  tipo: 'defesa' | 'inscricao'
   detalhe?: string
 }
 
@@ -224,6 +245,16 @@ export interface PeriodoInscricao {
   inicio: string
   fim: string
   situacao: PeriodoSituacao
+}
+
+/** Linha do histórico de inscrições: um período por semestre, com os números de inscritos. */
+export interface PeriodoResumo extends PeriodoInscricao {
+  /** É o período em vigor: o que está aberto ou, na falta dele, o próximo ou o mais recente. */
+  ativo: boolean
+  total: number
+  tcc1: number
+  tcc2: number
+  aguardandoCiencia: number
 }
 
 export interface PeriodoInput {

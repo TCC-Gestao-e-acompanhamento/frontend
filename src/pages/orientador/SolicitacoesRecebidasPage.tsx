@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useContext, useState } from 'react'
 import { ResponderModal } from '../../components/ResponderModal'
 import { SolicitacaoRow } from '../../components/SolicitacaoRow'
 import { useCurrentUser } from '../../auth/useAuth'
+import { ShellContext } from '../../layouts/shellContext'
 import { Button, DataBoundary, PageHeader, Tabs } from '../../design-system'
 import { useAsync } from '../../hooks/useAsync'
 import { listSolicitacoes } from '../../services/api'
@@ -11,6 +12,7 @@ type Aba = 'pendentes' | 'historico'
 
 export default function SolicitacoesRecebidasPage() {
   const user = useCurrentUser()
+  const { refreshContador } = useContext(ShellContext)
   const { state, reload } = useAsync(() => listSolicitacoes(user), [user.id])
   const [aviso, setAviso] = useState<string>()
   const [aba, setAba] = useState<Aba>('pendentes')
@@ -63,7 +65,7 @@ export default function SolicitacoesRecebidasPage() {
                   </ul>
                 )}
               </Tabs>
-              <ResponderModal solicitacao={alvo?.s ?? null} decisao={alvo?.decisao ?? 'aceita'} onClose={() => setAlvo(null)} onDone={(m) => { setAviso(m); reload() }} />
+              <ResponderModal solicitacao={alvo?.s ?? null} decisao={alvo?.decisao ?? 'aceita'} onClose={() => setAlvo(null)} onDone={(m) => { setAviso(m); reload(); refreshContador() }} />
             </>
           )
         }}

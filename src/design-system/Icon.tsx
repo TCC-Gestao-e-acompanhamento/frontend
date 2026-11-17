@@ -24,6 +24,7 @@ const PATHS = {
   minus: 'M5 12h14',
   download: 'M12 4v12M7 11l5 5 5-5M5 20h14',
   send: 'M21 3L3 10l7 3 3 7zM10 13l11-10',
+  pencil: 'M4 20h4L19 9l-4-4L4 16zM13 7l4 4',
   trash: 'M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3',
   pin:'M12 21s7-6 7-11a7 7 0 10-14 0c0 5 7 11 7 11zM12 12a2 2 0 100-4 2 2 0 000 4z',
 } as const

@@ -1,9 +1,10 @@
+import type { ReactNode } from 'react'
 import type { Etapa } from '../types'
-import { cn } from '../lib/format'
+import { cn, formatDate } from '../lib/format'
 import { Icon } from './Icon'
 
-/** Linha do tempo das etapas do TCC 1 e TCC 2. */
-export function Stepper({ etapas }: { etapas: Etapa[] }) {
+/** Linha do tempo das etapas do TCC 1 e TCC 2. `acaoAtual` aparece sob a etapa atual (ex.: concluir a etapa). */
+export function Stepper({ etapas, acaoAtual }: { etapas: Etapa[]; acaoAtual?: ReactNode }) {
   return (
     <ol className="space-y-0">
       {etapas.map((e, i) => {
@@ -35,7 +36,10 @@ export function Stepper({ etapas }: { etapas: Etapa[] }) {
               </p>
               <p className="text-xs text-ink-muted">
                 {e.situacao === 'concluida' ? 'Concluída' : e.situacao === 'atual' ? 'Etapa atual' : 'Próxima etapa'}
+                {e.concluidaEm && ` em ${formatDate(e.concluidaEm)}${e.concluidaPor ? ` por ${e.concluidaPor}` : ''}`}
+                {e.prazo && e.situacao !== 'concluida' && ` · até ${formatDate(e.prazo)}`}
               </p>
+              {e.situacao === 'atual' && acaoAtual && <div className="mt-2">{acaoAtual}</div>}
             </div>
           </li>
         )

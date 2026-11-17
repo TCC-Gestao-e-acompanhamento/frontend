@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Button, buttonClass, Icon, Modal } from "../design-system";
+import { Button, buttonClass, Icon, Modal, Tooltip } from "../design-system";
 import { cn } from "../lib/format";
 import type { Anotacao, FeedbackTipo, PosicaoPdf } from "../types";
 import { PainelComentarios } from "./PainelComentarios";
@@ -24,7 +24,6 @@ interface Props {
     trecho?: string;
     imagem?: string;
   }) => Promise<void>;
-  onResponder: (id: string, texto: string) => Promise<void>;
   onResolver: (id: string, resolvida: boolean) => Promise<void>;
   onExcluir: (id: string) => Promise<void>;
 }
@@ -39,7 +38,6 @@ export default function DocumentoPdf({
   anotacoes,
   papel,
   onCriar,
-  onResponder,
   onResolver,
   onExcluir,
 }: Props) {
@@ -71,6 +69,8 @@ export default function DocumentoPdf({
   const [pendente, setPendente] = useState<SelecaoPdf | null>(null);
   const [ativa, setAtiva] = useState<string>();
   const [aviso, setAviso] = useState<string>();
+  // clique no trecho destacado: o painel abre o comentário por inteiro
+  const [abrir, setAbrir] = useState<{ id: string; k: number }>();
   const [zoom, setZoom] = useState<ZoomPdf>("largura");
   const [escala, setEscala] = useState(1);
   const [paginas, setPaginas] = useState(0);
@@ -144,7 +144,10 @@ export default function DocumentoPdf({
     setAtiva(id);
     const a = ordenadas.find((x) => x.id === id);
     // painel empilhado abaixo do PDF (telas estreitas): traz o visualizador para a tela antes de rolar dentro dele
-    visualizadorRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    visualizadorRef.current?.scrollIntoView({
+      block: "nearest",
+      behavior: "smooth",
+    });
     if (a?.posicaoPdf)
       controle.current?.rolarPara(
         a.posicaoPdf.pageNumber,
@@ -166,23 +169,26 @@ export default function DocumentoPdf({
     setErroBaixar(undefined);
     try {
       // a biblioteca que escreve no PDF só é baixada neste momento
-      const { gerarPdfComComentarios } = await import("../lib/pdfComComentarios");
+      const { gerarPdfComComentarios } =
+        await import("../lib/pdfComComentarios");
       const blob = await gerarPdfComComentarios(url, ordenadas);
       const href = URL.createObjectURL(blob);
       salvar(href, nomeArquivo.replace(/\.pdf$/i, "") + "-com-comentarios.pdf");
       window.setTimeout(() => URL.revokeObjectURL(href), 10_000);
       setBaixando(false);
     } catch (e) {
-      setErroBaixar(e instanceof Error ? e.message : "Não foi possível gerar o PDF com comentários.");
+      setErroBaixar(
+        e instanceof Error
+          ? e.message
+          : "Não foi possível gerar o PDF com comentários.",
+      );
     } finally {
       setGerando(false);
     }
   };
   const aoClicarDestaque = (id: string) => {
     setAtiva(id);
-    document
-      .getElementById(`com-${id}`)
-      ?.scrollIntoView({ block: "center", behavior: "smooth" });
+    setAbrir((anterior) => ({ id, k: (anterior?.k ?? 0) + 1 }));
   };
 
   return (
@@ -206,28 +212,32 @@ export default function DocumentoPdf({
             aria-label="Controles do PDF"
             className="flex flex-wrap items-center gap-2"
           >
-            <button
-              type="button"
-              onClick={() => ajustarZoom(-0.15)}
-              aria-label="Diminuir o zoom"
-              className={buttonClass("secondary", "sm")}
-            >
-              <Icon name="minus" size={16} />
-            </button>
+            <Tooltip texto="Diminuir o zoom">
+              <button
+                type="button"
+                onClick={() => ajustarZoom(-0.15)}
+                aria-label="Diminuir o zoom"
+                className={buttonClass("secondary", "sm")}
+              >
+                <Icon name="minus" size={16} />
+              </button>
+            </Tooltip>
             <span
               className="min-w-12 text-center text-sm tabular-nums"
               aria-live="polite"
             >
               {Math.round(escala * 100)}%
             </span>
-            <button
-              type="button"
-              onClick={() => ajustarZoom(0.15)}
-              aria-label="Aumentar o zoom"
-              className={buttonClass("secondary", "sm")}
-            >
-              <Icon name="plus" size={16} />
-            </button>
+            <Tooltip texto="Aumentar o zoom">
+              <button
+                type="button"
+                onClick={() => ajustarZoom(0.15)}
+                aria-label="Aumentar o zoom"
+                className={buttonClass("secondary", "sm")}
+              >
+                <Icon name="plus" size={16} />
+              </button>
+            </Tooltip>
             <button
               type="button"
               onClick={() => setZoom("largura")}
@@ -241,31 +251,45 @@ export default function DocumentoPdf({
               </span>
             )}
             <span className="flex-1" />
-            <button
-              type="button"
-              onClick={() => {
-                setErroBaixar(undefined);
-                setBaixando(true);
-              }}
-              aria-label="Baixar o PDF"
-              title="Baixar o PDF"
-              className={cn(buttonClass("secondary", "sm"), "min-w-11 px-0 sm:min-w-9")}
+            <Tooltip texto="Baixar o PDF">
+              <button
+                type="button"
+                onClick={() => {
+                  setErroBaixar(undefined);
+                  setBaixando(true);
+                }}
+                aria-label="Baixar o PDF"
+                className={cn(
+                  buttonClass("secondary", "sm"),
+                  "min-w-11 px-0 sm:min-w-9",
+                )}
+              >
+                <Icon name="download" size={16} />
+              </button>
+            </Tooltip>
+            <Tooltip
+              texto={cheia ? "Sair da tela cheia" : "Tela cheia"}
+              alinhar="fim"
             >
-              <Icon name="download" size={16} />
-            </button>
-            <button
-              type="button"
-              onClick={alternarTelaCheia}
-              aria-pressed={cheia}
-              aria-label={cheia ? "Sair da tela cheia" : "Tela cheia"}
-              title={cheia ? "Sair da tela cheia" : "Tela cheia"}
-              className={cn(buttonClass("secondary", "sm"), "min-w-11 px-0 sm:min-w-9")}
-            >
-              <Icon name={cheia ? "shrink" : "expand"} size={16} />
-            </button>
+              <button
+                type="button"
+                onClick={alternarTelaCheia}
+                aria-pressed={cheia}
+                aria-label={cheia ? "Sair da tela cheia" : "Tela cheia"}
+                className={cn(
+                  buttonClass("secondary", "sm"),
+                  "min-w-11 px-0 sm:min-w-9",
+                )}
+              >
+                <Icon name={cheia ? "shrink" : "expand"} size={16} />
+              </button>
+            </Tooltip>
           </div>
 
-          <div ref={visualizadorRef} className="overflow-hidden rounded-card border border-border bg-surface-muted">
+          <div
+            ref={visualizadorRef}
+            className="overflow-hidden rounded-card border border-border bg-surface-muted"
+          >
             <VisualizadorPdf
               key={url}
               url={url}
@@ -305,9 +329,10 @@ export default function DocumentoPdf({
                   }
                 : null
             }
-            dicaSelecao="Selecione um trecho do PDF para comentar. Para marcar uma figura ou uma área, segure Alt e arraste (só no computador)."
+            dicaSelecao="Selecione um trecho do PDF para comentar. Para marcar uma figura ou uma área, segure Alt e arraste."
             aviso={aviso}
             ativa={ativa}
+            abrir={abrir}
             onVerNoDocumento={verNoDocumento}
             onCriar={async ({ tipo, texto }) => {
               if (!pendente) return;
@@ -321,17 +346,24 @@ export default function DocumentoPdf({
               limparSelecao();
             }}
             onCancelarSelecao={limparSelecao}
-            onResponder={onResponder}
             onResolver={onResolver}
             onExcluir={onExcluir}
           />
         </div>
       </div>
 
-      <Modal open={baixando} title="Baixar o PDF" bloqueado={gerando} onClose={() => setBaixando(false)}>
+      <Modal
+        open={baixando}
+        title="Baixar o PDF"
+        bloqueado={gerando}
+        onClose={() => setBaixando(false)}
+      >
         <div className="space-y-4 text-sm">
           {erroBaixar && (
-            <p role="alert" className="rounded-lg border border-danger/30 bg-danger/10 p-3 text-danger">
+            <p
+              role="alert"
+              className="rounded-lg border border-danger/30 bg-danger/10 p-3 text-danger"
+            >
               {erroBaixar}
             </p>
           )}
@@ -351,13 +383,25 @@ export default function DocumentoPdf({
             </p>
           </div>
           <div className="space-y-1.5">
-            <Button className="w-full" variant="neutral" disabled={gerando} onClick={baixarOriginal}>
+            <Button
+              className="w-full"
+              variant="neutral"
+              disabled={gerando}
+              onClick={baixarOriginal}
+            >
               Baixar sem comentários
             </Button>
-            <p className="text-ink-muted">O arquivo original, do jeito que foi enviado.</p>
+            <p className="text-ink-muted">
+              O arquivo original, do jeito que foi enviado.
+            </p>
           </div>
           <div className="flex justify-end">
-            <Button variant="ghost" size="sm" disabled={gerando} onClick={() => setBaixando(false)}>
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={gerando}
+              onClick={() => setBaixando(false)}
+            >
               Cancelar
             </Button>
           </div>

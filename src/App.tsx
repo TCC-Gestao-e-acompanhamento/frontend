@@ -8,7 +8,6 @@ import EtapasPage from './pages/aluno/EtapasPage'
 import CoordenacaoDashboard from './pages/coordenacao/CoordenacaoDashboard'
 import CoordInscricoesPage from './pages/coordenacao/InscricoesPage'
 import OrientadoresPage from './pages/coordenacao/OrientadoresPage'
-import PrazosPage from './pages/coordenacao/PrazosPage'
 import OrientadorDashboard from './pages/orientador/OrientadorDashboard'
 import BancasPublicasPage from './pages/public/BancasPublicasPage'
 import CalendarioPage from './pages/public/CalendarioPage'
@@ -83,7 +82,6 @@ export default function App() {
             <Route path="tccs/:id" element={<TccDetailPage />} />
             <Route path="inscricoes" element={<CoordInscricoesPage />} />
             <Route path="orientadores" element={<OrientadoresPage />} />
-            <Route path="prazos" element={<PrazosPage />} />
             <Route path="bancas" element={<BancasPage />} />
           </Route>
 

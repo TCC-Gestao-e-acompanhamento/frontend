@@ -1,9 +1,10 @@
+import type { ReactNode } from 'react'
 import { Card, Icon } from '../design-system'
 import { formatDate, relativeDays } from '../lib/format'
 import type { Banca } from '../types'
 import { StatusBadge } from './StatusBadge'
 
-export function BancaCard({ banca }: { banca: Banca }) {
+export function BancaCard({ banca, acoes }: { banca: Banca; acoes?: ReactNode }) {
   return (
     <Card className="p-5">
       <div className="flex flex-wrap items-start justify-between gap-2">
@@ -48,6 +49,8 @@ export function BancaCard({ banca }: { banca: Banca }) {
           </ul>
         </div>
       )}
+
+      {acoes && <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-border pt-4">{acoes}</div>}
     </Card>
   )
 }

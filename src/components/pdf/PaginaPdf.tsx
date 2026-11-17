@@ -32,6 +32,8 @@ interface Props {
   pendente: RetanguloPdf[] | null
   area: AreaTemporaria | null
   ativa?: string
+  /** Comentário sob o ponteiro: o trecho realça para mostrar que dá para clicar. */
+  sobre?: string
   onClicarDestaque: (id: string) => void
 }
 
@@ -41,7 +43,7 @@ const pct = (v: number) => `${(v * 100).toFixed(3)}%`
  * Uma página do PDF. Só é desenhada (imagem + texto selecionável) enquanto está perto da área visível:
  * com 100 páginas, o resto fica como um espaço vazio do tamanho certo, sem custo de memória nem de processamento.
  */
-export function PaginaPdf({ doc, numero, escala, base, raiz, destaques, pendente, area, ativa, onClicarDestaque }: Props) {
+export function PaginaPdf({ doc, numero, escala, base, raiz, destaques, pendente, area, ativa, sobre, onClicarDestaque }: Props) {
   const divRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const textoRef = useRef<HTMLDivElement>(null)
@@ -133,6 +135,7 @@ export function PaginaPdf({ doc, numero, escala, base, raiz, destaques, pendente
                 'absolute rounded-[2px] mix-blend-multiply',
                 d.resolvida ? 'bg-ink/10' : d.tipo === 'correcao' ? 'bg-warning/30' : 'bg-brand-500/25',
                 ativa === d.id && 'outline-2 outline-offset-1 outline-brand-700',
+                sobre === d.id && ativa !== d.id && 'outline-2 outline-offset-1 outline-brand-500',
               )}
               style={mostrar(r)}
             />
