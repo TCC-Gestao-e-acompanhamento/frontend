@@ -1,5 +1,5 @@
 import { lazy, Suspense, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { useCurrentUser } from "../../auth/useAuth";
 import { DocumentoAnotavel } from "../../components/DocumentoAnotavel";
 import { FeedbackForm } from "../../components/FeedbackForm";
@@ -18,7 +18,7 @@ import {
   Tooltip,
 } from "../../design-system";
 import { useAsync } from "../../hooks/useAsync";
-import { cn } from "../../lib/format";
+import { cn, formatDate } from "../../lib/format";
 import {
   aprovarDocumento,
   createAnotacao,
@@ -58,6 +58,15 @@ export default function DocumentoPage() {
   }, [user.id, id]);
   const [resolvendo, setResolvendo] = useState<string>();
   const [erroGeral, setErroGeral] = useState<string>();
+  const navigate = useNavigate();
+  // aviso de versão substituída: dispensado por documento (abrir outra versão mostra o aviso dela)
+  const [avisoDispensadoId, setAvisoDispensadoId] = useState<string>();
+  // trocar de documento zera o aviso: ao voltar para uma versão substituída ele aparece de novo
+  const [idVisto, setIdVisto] = useState(id);
+  if (idVisto !== id) {
+    setIdVisto(id);
+    setAvisoDispensadoId(undefined);
+  }
   const [editandoId, setEditandoId] = useState<string>();
   const [apagandoId, setApagandoId] = useState<string>();
   const [apagandoEnvio, setApagandoEnvio] = useState(false);
@@ -295,6 +304,39 @@ export default function DocumentoPage() {
                   }}
                 />
               )}
+              <Modal
+                open={papel === "orientador" && d.status === "substituida" && !!d.versaoMaisRecente && avisoDispensadoId !== d.id}
+                title="Há um arquivo mais recente"
+                onClose={() => setAvisoDispensadoId(d.id)}
+              >
+                {d.versaoMaisRecente && (
+                  <div className="space-y-4 text-sm">
+                    <p>
+                      Esta é a versão {d.versao} de {d.nome}, que foi{" "}
+                      <strong>substituída</strong>. {d.alunoNome} enviou a{" "}
+                      <strong>versão {d.versaoMaisRecente.versao}</strong> em{" "}
+                      {formatDate(d.versaoMaisRecente.enviadoEm)}. Comentários e
+                      retorno devem ir na versão mais recente.
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        onClick={() => {
+                          setAvisoDispensadoId(d.id);
+                          navigate(`/orientador/documentos/${d.versaoMaisRecente?.id}`);
+                        }}
+                      >
+                        Abrir a versão {d.versaoMaisRecente.versao}
+                      </Button>
+                      <Button
+                        variant="neutral"
+                        onClick={() => setAvisoDispensadoId(d.id)}
+                      >
+                        Continuar nesta versão
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </Modal>
               <Modal
                 open={!!apagandoId}
                 title="Excluir o retorno geral?"
