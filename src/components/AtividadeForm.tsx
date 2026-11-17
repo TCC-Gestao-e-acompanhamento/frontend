@@ -2,14 +2,16 @@ import { useState, type FormEvent } from 'react'
 import { useCurrentUser } from '../auth/useAuth'
 import { Button, Field, Input, Select } from '../design-system'
 import { toIso } from '../lib/format'
-import { createAtividade } from '../services/api'
-import type { NovaAtividade, Tcc } from '../types'
+import { createAtividade, updateAtividade } from '../services/api'
+import type { Atividade, NovaAtividade, Tcc } from '../types'
 
 interface Props {
-  /** Trabalho fixo (aba do TCC). Sem ele, o formulário pede qual orientando, entre `orientandos`. */
+  /** Trabalho fixo (aba do TCC ou aluno). Sem ele, o formulário pede qual orientando, entre `orientandos`. */
   tccId?: string
   orientandos?: Tcc[]
-  onSaved: () => void
+  /** Quando informada, o formulário edita esta atividade em vez de criar uma nova. */
+  atividade?: Atividade
+  onSaved: (aviso: string) => void
   onCancel?: () => void
 }
 
@@ -19,36 +21,42 @@ const TIPOS: Array<{ valor: NovaAtividade['tipo']; rotulo: string; exemplo: stri
   { valor: 'marco', rotulo: 'Marco', exemplo: 'Ex.: Apresentação na banca' },
 ]
 
-/** O orientador adiciona reunião, entrega ou marco ao cronograma de um orientando. */
-export function AtividadeForm({ tccId, orientandos = [], onSaved, onCancel }: Props) {
+/** Aluno e orientador adicionam ou editam reunião, entrega ou marco no cronograma do TCC. */
+export function AtividadeForm({ tccId, orientandos = [], atividade, onSaved, onCancel }: Props) {
   const user = useCurrentUser()
+  const editando = !!atividade
   const [hoje] = useState(() => toIso(new Date()))
-  const [alvo, setAlvo] = useState(tccId ?? (orientandos.length === 1 ? orientandos[0].id : ''))
-  const [tipo, setTipo] = useState<NovaAtividade['tipo']>('reuniao')
-  const [titulo, setTitulo] = useState('')
-  const [prazo, setPrazo] = useState('')
+  const [alvo, setAlvo] = useState(tccId ?? atividade?.tccId ?? (orientandos.length === 1 ? orientandos[0].id : ''))
+  const [tipo, setTipo] = useState<NovaAtividade['tipo']>(atividade?.tipo ?? 'reuniao')
+  const [titulo, setTitulo] = useState(atividade?.titulo ?? '')
+  const [prazo, setPrazo] = useState(atividade?.prazo ?? '')
   const [erros, setErros] = useState<{ alvo?: string; titulo?: string; prazo?: string }>({})
   const [erroEnvio, setErroEnvio] = useState<string>()
   const [salvando, setSalvando] = useState(false)
+  // uma atividade já marcada para uma data passada mantém essa data; só uma data nova precisa ser de hoje em diante
+  const dataMinima = atividade && atividade.prazo < hoje ? atividade.prazo : hoje
 
   const submit = async (e: FormEvent) => {
     e.preventDefault()
     const novos = {
       alvo: alvo ? undefined : 'Escolha o orientando.',
       titulo: titulo.trim().length >= 3 ? undefined : 'Dê um título de pelo menos 3 letras.',
-      prazo: !prazo ? 'Informe a data.' : prazo < hoje ? 'A data não pode ser anterior a hoje.' : undefined,
+      prazo: !prazo ? 'Informe a data.' : prazo < dataMinima ? 'A data não pode ser anterior a hoje.' : undefined,
     }
     setErros(novos)
     if (novos.alvo || novos.titulo || novos.prazo) return
     setSalvando(true)
     setErroEnvio(undefined)
     try {
-      await createAtividade(user, { tccId: alvo, titulo: titulo.trim(), tipo, prazo })
-      setTitulo('')
-      setPrazo('')
-      onSaved()
+      if (atividade) await updateAtividade(user, atividade.id, { titulo: titulo.trim(), tipo, prazo })
+      else await createAtividade(user, { tccId: alvo, titulo: titulo.trim(), tipo, prazo })
+      if (!atividade) {
+        setTitulo('')
+        setPrazo('')
+      }
+      onSaved(atividade ? 'Atividade atualizada.' : 'Atividade adicionada ao cronograma.')
     } catch (err) {
-      setErroEnvio(err instanceof Error ? err.message : 'Não foi possível adicionar a atividade.')
+      setErroEnvio(err instanceof Error ? err.message : editando ? 'Não foi possível salvar a atividade.' : 'Não foi possível adicionar a atividade.')
     } finally {
       setSalvando(false)
     }
@@ -57,9 +65,9 @@ export function AtividadeForm({ tccId, orientandos = [], onSaved, onCancel }: Pr
   const exemplo = TIPOS.find((t) => t.valor === tipo)?.exemplo
   return (
     <form onSubmit={submit} noValidate className="space-y-4 rounded-lg bg-surface-muted p-4">
-      <h3 className="text-base font-semibold">Nova atividade no cronograma</h3>
+      <h3 className="text-base font-semibold">{editando ? 'Editar atividade' : 'Nova atividade no cronograma'}</h3>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        {!tccId && (
+        {!tccId && !editando && (
           <Field label="Orientando" error={erros.alvo}>
             {(p) => (
               <Select {...p} value={alvo} onChange={(e) => setAlvo(e.target.value)}>
@@ -77,16 +85,16 @@ export function AtividadeForm({ tccId, orientandos = [], onSaved, onCancel }: Pr
           )}
         </Field>
         <Field label="Título" error={erros.titulo}>
-          {(p) => <Input {...p} value={titulo} maxLength={120} placeholder={exemplo} onChange={(e) => setTitulo(e.target.value)} />}
+          {(p) => <Input {...p} autoFocus={editando} value={titulo} maxLength={120} placeholder={exemplo} onChange={(e) => setTitulo(e.target.value)} />}
         </Field>
         <Field label="Data" error={erros.prazo}>
-          {(p) => <Input {...p} type="date" min={hoje} value={prazo} onChange={(e) => setPrazo(e.target.value)} />}
+          {(p) => <Input {...p} type="date" min={dataMinima} value={prazo} onChange={(e) => setPrazo(e.target.value)} />}
         </Field>
       </div>
       {erroEnvio && <p role="alert" className="text-sm text-danger">{erroEnvio}</p>}
       <div className="flex flex-wrap gap-3">
-        <Button type="submit" loading={salvando}>Adicionar ao cronograma</Button>
-        {onCancel && <Button variant="neutral" disabled={salvando} onClick={onCancel}>Fechar</Button>}
+        <Button type="submit" loading={salvando}>{editando ? 'Salvar alterações' : 'Adicionar ao cronograma'}</Button>
+        {onCancel && <Button variant="neutral" disabled={salvando} onClick={onCancel}>{editando ? 'Cancelar' : 'Fechar'}</Button>}
       </div>
     </form>
   )

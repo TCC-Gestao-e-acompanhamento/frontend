@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { DocumentList } from '../../components/DocumentList'
+import { InformacoesTcc } from '../../components/InformacoesTcc'
 import { useCurrentUser } from '../../auth/useAuth'
 import { Button, DataBoundary, EmptyState, Field, Input, PageHeader, SectionCard, Select, Textarea } from '../../design-system'
 import { useAsync } from '../../hooks/useAsync'
@@ -140,6 +141,7 @@ export default function DocumentsPage() {
           const grupos = agrupar(documentos, !isAluno)
           return (
             <>
+              {isAluno && tcc && <InformacoesTcc tcc={tcc} editavel onSaved={reload} />}
               {isAluno && (tcc ? <UploadForm tcc={tcc} documentos={documentos} onSent={reload} /> : <EmptyState title="Você ainda não tem um TCC vinculado" description="O envio de documentos libera quando o TCC e o orientador estiverem vinculados." />)}
               <SectionCard title={isAluno ? 'Versões enviadas' : 'Entregas recebidas'}>
                 {grupos.length === 0 ? (

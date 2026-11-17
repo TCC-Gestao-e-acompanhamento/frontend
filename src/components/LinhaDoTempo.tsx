@@ -1,10 +1,11 @@
 import { Link } from 'react-router-dom'
 import { Icon, type IconName } from '../design-system'
 import { formatDate, formatMonth } from '../lib/format'
-import type { EventoTempo, EventoTempoTipo } from '../types'
+import type { EventoTempo, EventoTempoTipo, Role } from '../types'
 
-const ICONE: Record<EventoTempoTipo, IconName> = { reuniao: 'users', documento: 'file', feedback: 'message', comentario: 'message' }
-const ROTULO: Record<EventoTempoTipo, string> = { reuniao: 'Reunião', documento: 'Entrega', feedback: 'Feedback', comentario: 'Comentário no texto' }
+const ICONE: Record<EventoTempoTipo, IconName> = { reuniao: 'users', documento: 'file', feedback: 'message', comentario: 'message', atividade: 'calendar' }
+const ROTULO: Record<EventoTempoTipo, string> = { reuniao: 'Reunião', documento: 'Entrega', feedback: 'Feedback', comentario: 'Comentário no texto', atividade: 'Atividade' }
+const PAPEL: Record<Role, string> = { aluno: 'aluno', orientador: 'orientador', coordenacao: 'coordenação' }
 
 interface Props {
   eventos: EventoTempo[]
@@ -12,7 +13,7 @@ interface Props {
   documentoHref?: (documentoId: string) => string
 }
 
-/** Linha do tempo do TCC: reuniões, entregas, feedbacks e comentários, do mais recente ao mais antigo. */
+/** Linha do tempo do TCC: reuniões, atividades, entregas, feedbacks e comentários, do mais recente ao mais antigo. */
 export function LinhaDoTempo({ eventos, documentoHref }: Props) {
   const grupos = eventos.reduce<Record<string, EventoTempo[]>>((acc, e) => {
     ;(acc[formatMonth(e.data)] ??= []).push(e)
@@ -32,7 +33,7 @@ export function LinhaDoTempo({ eventos, documentoHref }: Props) {
                 </span>
                 <div className="min-w-0 flex-1 pt-0.5">
                   <p className="text-xs text-ink-muted">
-                    {formatDate(e.data)} · {ROTULO[e.tipo]}
+                    {formatDate(e.data)} · {ROTULO[e.tipo]} · por {e.autorNome} ({PAPEL[e.autorRole]})
                   </p>
                   <p className="font-medium">{e.titulo}</p>
                   {e.detalhe && <p className="mt-0.5 text-sm text-ink-muted">{e.detalhe}</p>}

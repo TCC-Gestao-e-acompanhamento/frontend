@@ -4,6 +4,7 @@ import { ActivityList } from '../../components/ActivityList'
 import { AtividadeForm } from '../../components/AtividadeForm'
 import { EtapasAcompanhamento } from '../../components/EtapasAcompanhamento'
 import { EtapasEditor } from '../../components/EtapasEditor'
+import { InformacoesTcc } from '../../components/InformacoesTcc'
 import { DocumentList } from '../../components/DocumentList'
 import { FeedbackList } from '../../components/FeedbackList'
 import { LinhaDoTempo } from '../../components/LinhaDoTempo'
@@ -12,6 +13,7 @@ import { StatusBadge } from '../../components/StatusBadge'
 import { useCurrentUser } from '../../auth/useAuth'
 import { Button, DataBoundary, PageHeader, ProgressBar, SectionCard, Tabs } from '../../design-system'
 import { useAsync } from '../../hooks/useAsync'
+import { focarAvisoAtividade, ID_AVISO_ATIVIDADE } from '../../lib/foco'
 import { getTcc, listAtividades, listDocumentos, listFeedbacks, listLinhaDoTempo } from '../../services/api'
 
 type Aba = 'etapas' | 'cronograma' | 'documentos' | 'feedbacks' | 'historico'
@@ -22,6 +24,7 @@ export default function TccDetailPage() {
   const { id = '' } = useParams()
   const [aba, setAba] = useState<Aba>('etapas')
   const [definindo, setDefinindo] = useState(false)
+  const [avisoAtividade, setAvisoAtividade] = useState<string>()
   const voltar = user.role === 'coordenacao' ? '/coordenacao/tccs' : '/orientador/orientandos'
 
   const { state, reload } = useAsync(async () => {
@@ -58,11 +61,12 @@ export default function TccDetailPage() {
                 </div>
               </div>
             </SectionCard>
+            <InformacoesTcc tcc={tcc} editavel={user.role === 'orientador'} onSaved={reload} />
 
             <Tabs<Aba>
               label="Detalhes do TCC"
               value={aba}
-              onChange={setAba}
+              onChange={(a) => { setAvisoAtividade(undefined); setAba(a) }}
               items={[
                 { key: 'etapas', label: 'Etapas' },
                 { key: 'cronograma', label: 'Cronograma', count: atividades.length },
@@ -86,8 +90,17 @@ export default function TccDetailPage() {
                 ))}
               {aba === 'cronograma' && (
                 <div className="space-y-4">
-                  {user.role === 'orientador' && <AtividadeForm tccId={tcc.id} onSaved={reload} />}
-                  {atividades.length ? <ActivityList items={atividades} /> : <p className="text-sm text-ink-muted">Sem atividades no cronograma.</p>}
+                  {avisoAtividade && <p id={ID_AVISO_ATIVIDADE} tabIndex={-1} role="status" className="rounded-lg bg-accent-50 p-3 text-sm text-success">{avisoAtividade}</p>}
+                  {user.role === 'orientador' && <AtividadeForm tccId={tcc.id} onSaved={(a) => { setAvisoAtividade(a); reload(); focarAvisoAtividade() }} />}
+                  {atividades.length ? (
+                    <ActivityList
+                      items={atividades}
+                      onChanged={user.role === 'orientador' ? (a) => { setAvisoAtividade(a); reload() } : undefined}
+                      onAbrir={() => setAvisoAtividade(undefined)}
+                    />
+                  ) : (
+                    <p className="text-sm text-ink-muted">Sem atividades no cronograma.</p>
+                  )}
                 </div>
               )}
               {aba === 'documentos' &&
