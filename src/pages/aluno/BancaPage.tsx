@@ -6,7 +6,7 @@ import { Button, DataBoundary, EmptyState, PageHeader, SectionCard } from '../..
 import { useAsync } from '../../hooks/useAsync'
 import { cancelBanca, createBanca, getMinhaBanca, listTccs, updateBanca } from '../../services/api'
 
-/** O aluno propõe a banca do próprio TCC; a proposta só vale depois da validação da coordenação. */
+/** O aluno (e o orientador, na página de bancas dele) propõe a banca do TCC; a proposta só vale depois da validação da coordenação. */
 export default function BancaPage() {
   const user = useCurrentUser()
   const { state, reload } = useAsync(async () => {
@@ -22,29 +22,30 @@ export default function BancaPage() {
 
   return (
     <>
-      <PageHeader title="Minha banca" description="Proponha a composição da banca do seu TCC. A proposta só vale depois de validada pela coordenação." />
+      <PageHeader title="Minha banca" description="Proponha a composição da banca do seu TCC; seu orientador também pode propor e ajustar. A proposta só vale depois de validada pela coordenação." />
       <DataBoundary state={state} reload={reload}>
         {({ tcc, banca }) => {
           if (!tcc) {
             return <EmptyState title="Você ainda não tem um TCC vinculado" description="A banca é proposta depois que o TCC e o orientador estiverem vinculados." />
           }
           const semBanca = !banca || banca.situacao === 'a_definir'
+          const rejeitada = banca?.situacao === 'rejeitada'
           return (
             <div className="space-y-6">
               {aviso && <p role="status" className="rounded-lg border border-border bg-surface-muted p-3 text-sm">{aviso}</p>}
 
               {modo === 'form' ? (
-                <SectionCard title={semBanca ? 'Propor banca' : 'Editar proposta'} description="Você pode ajustar a proposta até a coordenação validar.">
+                <SectionCard title={semBanca ? 'Propor banca' : rejeitada ? 'Ajustar e reenviar a proposta' : 'Editar proposta'} description={rejeitada ? 'Ajuste o que for preciso e reenvie para a coordenação.' : 'Você pode ajustar a proposta até a coordenação validar.'}>
                   <BancaForm
                     orientadorNome={tcc.orientador.nome}
                     inicial={semBanca ? undefined : banca}
-                    submitLabel={semBanca ? 'Enviar proposta' : 'Salvar alterações'}
+                    submitLabel={semBanca ? 'Enviar proposta' : rejeitada ? 'Reenviar proposta' : 'Salvar alterações'}
                     onCancel={() => setModo('ver')}
                     onSubmit={async (dados) => {
                       if (semBanca) await createBanca(user, { tccId: tcc.id, ...dados })
                       else await updateBanca(user, banca.id, dados)
                       setModo('ver')
-                      setAviso(semBanca ? 'Proposta enviada. A coordenação ainda precisa validar a banca.' : 'Proposta atualizada.')
+                      setAviso(semBanca ? 'Proposta enviada. A coordenação ainda precisa validar a banca.' : rejeitada ? 'Proposta reenviada. A coordenação ainda precisa validar a banca.' : 'Proposta atualizada.')
                       reload()
                     }}
                   />
@@ -58,10 +59,12 @@ export default function BancaPage() {
               ) : (
                 <>
                   <BancaCard banca={banca} />
-                  {banca.situacao === 'proposta' ? (
+                  {banca.situacao === 'proposta' || rejeitada ? (
                     <div className="space-y-3">
                       <p className="rounded-lg bg-surface-muted p-3 text-sm text-ink-muted">
-                        Esta é uma proposta sua. Ela ainda não é pública e depende da validação da coordenação. Até lá você pode editar ou remover; depois de validada, só a coordenação altera (procedimento a confirmar).
+                        {rejeitada
+                          ? 'Esta proposta foi rejeitada pela coordenação e não é pública. Você e seu orientador podem ajustar e reenviar, ou remover a proposta.'
+                          : 'Esta proposta ainda não é pública e depende da validação da coordenação. Até lá você e seu orientador podem editar ou remover; depois de validada, só a coordenação altera (procedimento a confirmar).'}
                       </p>
                       {erro && <p role="alert" className="text-sm text-danger">{erro}</p>}
                       {confirmando ? (
@@ -102,7 +105,7 @@ export default function BancaPage() {
                         </div>
                       ) : (
                         <div className="flex flex-wrap gap-3">
-                          <Button onClick={() => { setAviso(undefined); setModo('form') }}>Editar proposta</Button>
+                          <Button onClick={() => { setAviso(undefined); setModo('form') }}>{rejeitada ? 'Ajustar e reenviar' : 'Editar proposta'}</Button>
                           <Button ref={botaoCancelar} variant="secondary" onClick={() => setConfirmando(true)}>Remover proposta</Button>
                         </div>
                       )}

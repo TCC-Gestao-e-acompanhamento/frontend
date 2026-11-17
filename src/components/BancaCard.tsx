@@ -17,6 +17,12 @@ export function BancaCard({ banca, acoes }: { banca: Banca; acoes?: ReactNode })
         <StatusBadge kind="banca" value={banca.situacao} />
       </div>
 
+      {banca.situacao === 'rejeitada' && (
+        <p className="mt-3 rounded-lg bg-danger/10 p-3 text-sm text-danger">
+          A coordenação rejeitou esta proposta.{banca.motivoRejeicao ? ` Motivo: ${banca.motivoRejeicao}` : ' Nenhum motivo foi informado.'} Ajuste e reenvie, ou remova a proposta.
+        </p>
+      )}
+
       {banca.data || banca.local || linkSala ? (
         <dl className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
           {banca.data && (
