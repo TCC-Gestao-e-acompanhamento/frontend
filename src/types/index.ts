@@ -17,7 +17,7 @@ export type AtividadeStatus = 'pendente' | 'em_andamento' | 'concluida' | 'atras
  * Quando o aluno envia uma versão nova, a anterior que não foi aprovada fica "substituída".
  */
 export type DocumentoStatus = 'pendente_revisao' | 'correcao' | 'aprovado' | 'substituida'
-export type BancaSituacao = 'a_definir' | 'proposta' | 'agendada' | 'realizada'
+export type BancaSituacao = 'a_definir' | 'proposta' | 'rejeitada' | 'agendada' | 'realizada'
 export type FeedbackTipo = 'comentario' | 'correcao'
 
 /** Registro "cru", como viria do banco. */
@@ -27,6 +27,9 @@ export interface TccRecord {
   alunoId: string
   orientadorId: string
   semestre: string
+  /** Área e descrição (o tema) do trabalho; aluno e orientador editam. */
+  area?: string
+  descricao?: string
   /** Índice da etapa atual na lista de etapas do trabalho; igual ao total quando todas foram concluídas. */
   etapaIndex: number
   /** Etapas definidas pelo orientador para este trabalho; sem isso vale a lista padrão. */
@@ -48,12 +51,22 @@ export interface DefinirEtapas {
   atual: number
 }
 
+/** Informações que identificam o trabalho; aluno e orientador editam. */
+export interface InformacoesTcc {
+  titulo: string
+  area: string
+  descricao: string
+}
+
 export interface NovaAtividade {
   tccId: string
   titulo: string
   tipo: 'entrega' | 'reuniao' | 'marco'
   prazo: string
 }
+
+/** Edição de uma atividade: o trabalho (TCC) não muda. */
+export type EdicaoAtividade = Omit<NovaAtividade, 'tccId'>
 
 export interface Etapa {
   nome: string
@@ -69,6 +82,8 @@ export interface Tcc {
   id: string
   titulo: string
   semestre: string
+  area?: string
+  descricao?: string
   aluno: User
   orientador: User
   fase: Fase
@@ -87,6 +102,8 @@ export interface Atividade {
   status: AtividadeStatus
   tipo: 'entrega' | 'reuniao' | 'marco'
   alunoNome: string
+  criadaPorNome: string
+  criadaPorRole: Role
 }
 
 export interface Documento {
@@ -141,6 +158,8 @@ export interface Banca {
   local?: string
   /** Endereço da sala virtual, quando a defesa é (ou também é) online. */
   link?: string
+  /** Quando a coordenação rejeita a proposta, o motivo (opcional) que ela informou. */
+  motivoRejeicao?: string
   membros: MembroBanca[]
 }
 
@@ -323,9 +342,9 @@ export interface NovaOrientacao {
   proximoEncontro?: string
 }
 
-export type EventoTempoTipo = 'reuniao' | 'documento' | 'feedback' | 'comentario'
+export type EventoTempoTipo = 'reuniao' | 'documento' | 'feedback' | 'comentario' | 'atividade'
 
-/** Linha do tempo do TCC: reuniões, entregas, feedbacks e comentários em documentos. */
+/** Linha do tempo do TCC: reuniões, atividades do cronograma, entregas, feedbacks e comentários em documentos. */
 export interface EventoTempo {
   id: string
   tccId: string
@@ -333,6 +352,9 @@ export interface EventoTempo {
   tipo: EventoTempoTipo
   titulo: string
   detalhe?: string
+  /** Quem registrou o evento (o aluno que enviou, o orientador que comentou ou registrou a reunião). */
+  autorNome: string
+  autorRole: Role
   /** Para abrir o documento relacionado. */
   documentoId?: string
 }

@@ -46,13 +46,13 @@ export const users: User[] = [
 ]
 
 export const tccs: TccRecord[] = [
-  { id: 't1', titulo: 'Análise de acessibilidade em portais de serviços públicos', alunoId: 'a1', orientadorId: 'o1', semestre: '2026/2', etapaIndex: 5 },
-  { id: 't2', titulo: 'Detecção de fraudes em transações com aprendizado de máquina', alunoId: 'a2', orientadorId: 'o1', semestre: '2026/2', etapaIndex: 2 },
-  { id: 't3', titulo: 'Aplicativo de monitoramento de qualidade do ar', alunoId: 'a3', orientadorId: 'o1', semestre: '2026/2', etapaIndex: 1 },
-  { id: 't4', titulo: 'Arquitetura de microsserviços para sistemas acadêmicos', alunoId: 'a4', orientadorId: 'o1', semestre: '2026/2', etapaIndex: 4 },
-  { id: 't5', titulo: 'Gamificação no ensino de lógica de programação', alunoId: 'a5', orientadorId: 'o2', semestre: '2026/2', etapaIndex: 3 },
-  { id: 't6', titulo: 'Segurança em APIs REST: um estudo comparativo', alunoId: 'a6', orientadorId: 'o2', semestre: '2026/2', etapaIndex: 6 },
-  { id: 't7', titulo: 'Visualização de dados abertos do transporte público do DF', alunoId: 'a7', orientadorId: 'o2', semestre: '2026/2', etapaIndex: 0 },
+  { id: 't1', titulo: 'Análise de acessibilidade em portais de serviços públicos', alunoId: 'a1', orientadorId: 'o1', semestre: '2026/2', area: 'Interação Humano-Computador', descricao: 'Avalia a acessibilidade dos portais de serviços públicos mais acessados, com ferramentas automatizadas e inspeção manual, com base nas diretrizes WCAG.', etapaIndex: 5 },
+  { id: 't2', titulo: 'Detecção de fraudes em transações com aprendizado de máquina', alunoId: 'a2', orientadorId: 'o1', semestre: '2026/2', area: 'Inteligência Artificial', descricao: 'Compara modelos de aprendizado de máquina para detectar fraudes em transações financeiras, com foco em dados desbalanceados e métricas de avaliação.', etapaIndex: 2 },
+  { id: 't3', titulo: 'Aplicativo de monitoramento de qualidade do ar', alunoId: 'a3', orientadorId: 'o1', semestre: '2026/2', area: 'Internet das Coisas', descricao: 'Desenvolve um aplicativo que reúne medições de sensores de qualidade do ar e mostra alertas e histórico ao usuário.', etapaIndex: 1 },
+  { id: 't4', titulo: 'Arquitetura de microsserviços para sistemas acadêmicos', alunoId: 'a4', orientadorId: 'o1', semestre: '2026/2', area: 'Sistemas Distribuídos', descricao: 'Propõe uma arquitetura de microsserviços para sistemas acadêmicos e discute os efeitos em escalabilidade e manutenção.', etapaIndex: 4 },
+  { id: 't5', titulo: 'Gamificação no ensino de lógica de programação', alunoId: 'a5', orientadorId: 'o2', semestre: '2026/2', area: 'Informática na Educação', descricao: 'Investiga o uso de elementos de gamificação no ensino de lógica de programação para turmas iniciais.', etapaIndex: 3 },
+  { id: 't6', titulo: 'Segurança em APIs REST: um estudo comparativo', alunoId: 'a6', orientadorId: 'o2', semestre: '2026/2', area: 'Segurança da Informação', descricao: 'Compara formas de proteger APIs REST, como autenticação, limite de requisições e validação de entrada.', etapaIndex: 6 },
+  { id: 't7', titulo: 'Visualização de dados abertos do transporte público do DF', alunoId: 'a7', orientadorId: 'o2', semestre: '2026/2', area: 'Ciência de Dados', descricao: 'Reúne e visualiza dados abertos do transporte público do DF para apoiar a análise de rotas e horários.', etapaIndex: 0 },
 ]
 
 export interface AtividadeRecord {
@@ -62,6 +62,10 @@ export interface AtividadeRecord {
   prazo: string
   status: AtividadeStatus
   tipo: 'entrega' | 'reuniao' | 'marco'
+  /** Quem criou. Os dados de exemplo não trazem: valem como criados pelo orientador do TCC. */
+  criadaPorId?: string
+  /** Dia em que foi criada. Os dados de exemplo não trazem: valem 14 dias antes do prazo, sem passar de hoje. */
+  criadaEm?: string
 }
 
 export const atividades: AtividadeRecord[] = [
@@ -146,6 +150,7 @@ export interface BancaRecord {
   data?: string
   local?: string
   link?: string
+  motivoRejeicao?: string
   membros: MembroBanca[]
 }
 

@@ -20,7 +20,7 @@ estados de carregamento, erro e vazio via `?mock=loading|error|empty`.
 
 | Rota                | Conteúdo                                                                      |
 | ------------------- | ----------------------------------------------------------------------------- |
-| `/`                 | Apresentação, indicadores agregados do semestre, próximas defesas, calendário |
+| `/`                 | Apresentação, indicadores agregados do semestre, próximas defesas, calendário, convite para conhecer as etapas do TCC (modal) |
 | `/bancas`           | Bancas públicas (agendadas e realizadas)                                      |
 | `/orientadores`     | Busca de orientadores (nome, curso, área, só quem recebe solicitações)        |
 | `/orientadores/:id` | Perfil público do professor + botão "Solicitar orientação"                    |
@@ -232,7 +232,7 @@ coordenação precisa ver os comentários dos documentos.
 
 | Hipótese | Situação no protótipo |
 |---|---|
-| H1: normas/procedimentos + lista de orientadores | Lista de orientadores completa. **Falta a página de normas e procedimentos do TCC** (depende do conteúdo oficial) |
+| H1: etapas do TCC + lista de orientadores | Completo: lista de orientadores e consulta pública às etapas pelo convite da tela inicial (modal, RF18). As etapas são genéricas, a validar com o regulamento |
 | H2: solicitar e responder orientação | Completo |
 | H3: etapas + cronograma + prazos | Completo (etapas genéricas, a validar) |
 | H4: documentos + feedbacks + histórico | Completo, incluindo registro de orientações e comentários em trechos |
@@ -284,7 +284,7 @@ ou só enviar nova versão; (28) o orientador precisa baixar o PDF com as marca�
 - **Solicitar orientação**: novo campo obrigatório "Semestre pretendido" (semestre atual e os dois seguintes), mostrado também no
   detalhe e na lista de solicitações do aluno e do orientador.
 - **Banca proposta pelo aluno** (`/aluno/banca`): o aluno informa membros (de 1 a 6, com papel e instituição) e, opcionalmente, data e
-  local. A banca fica como **"Proposta do aluno"**: não é pública (só bancas agendadas ou realizadas aparecem no site e no calendário)
+  local. A banca fica como **"Proposta"**: não é pública (só bancas agendadas ou realizadas aparecem no site e no calendário)
   e o aluno pode editar ou cancelar (com confirmação) enquanto for proposta. Depois de confirmada, só a coordenação altera.
   Orientador e coordenação já veem a proposta na lista de bancas. **Ainda não existe a ação da coordenação para confirmar a banca**,
   porque o procedimento institucional precisa ser confirmado.
@@ -361,7 +361,7 @@ ou recarregar a página reinicia esses dados, e então um documento enviado ante
   põe a data (opcional) e marca a etapa atual do aluno; pode reordenar, remover e adicionar (1 a 12). Regras da API: nomes únicos, etapas do TCC 1 antes
   das do TCC 2, datas em ordem. Aluno e coordenação veem as etapas e as datas. A lista padrão de 8 etapas vale até o orientador mudar.
 - **Cronograma**: o orientador cria reunião, entrega ou marco em **Nova atividade** (página Cronogramas, escolhendo o orientando, e na aba Cronograma
-  do orientando). Data a partir de hoje; título de 3 a 120 letras. Editar e excluir atividade ficam para depois.
+  do orientando). Data a partir de hoje; título de 3 a 120 letras. (Editar e excluir, e a criação pelo aluno, entraram depois: ver "Ajustes para bater com o texto da metodologia".)
 - **Orientandos**: a lista virou cartões; o cartão inteiro abre o trabalho. Na aba Feedbacks do orientando saiu o formulário de novo feedback (o retorno
   agora é dado dentro de cada versão de documento).
 - **Coordenação, TCCs cadastrados**: tabela só com tema, aluno, orientador e etapa (TCC 1 ou 2); filtros de busca e de etapa. Saíram progresso e situação.
@@ -400,4 +400,54 @@ ou recarregar a página reinicia esses dados, e então um documento enviado ante
   endereços `http://` ou `https://` (até 300 caracteres, sem espaços e sem usuário e senha embutidos), validado na tela e na API simulada com a mesma função. Aparece como "Entrar na sala virtual" (abre em nova aba, com
   `rel="noopener noreferrer"`) nos cartões de banca, inclusive na página pública. O texto "(link divulgado pela coordenação)" saiu: a coordenação não divulga o
   link, quem cadastra a banca informa.
+
+## Ajustes para bater com o texto da metodologia
+
+Mudanças para o protótipo seguir os requisitos escritos no capítulo de Metodologia (RF08, RF11, RF13, RF14).
+
+- **Banca: aluno e orientador** propõem, editam e removem a banca **até a coordenação validar**. O orientador faz isso em
+  `/orientador/bancas` (os orientandos sem banca aparecem com "Propor banca"; o formulário já sugere o orientador como presidente). Depois de validada, só a
+  coordenação altera (a API devolve 409 para aluno e orientador). A coordenação segue validando, editando e removendo, não cria banca do zero.
+  O selo passou de "Proposta do aluno" para **"Proposta"**. Hipótese 43: aluno e orientador podem editar a mesma proposta sem aviso um ao outro
+  (sem histórico de quem mudou o quê). Substitui a hipótese 32 (orientador aprovar antes da coordenação).
+- **Atividades do cronograma: aluno e orientador criam, editam e excluem** (Cronograma do aluno, Cronogramas do orientador e aba Cronograma do
+  orientando). Edição na própria linha (título, tipo e data; o TCC não muda), exclusão com confirmação, ícones só com dica. Cada atividade mostra
+  **"Criada por Nome (papel)"** (as de exemplo valem como criadas pelo orientador). Uma atividade atrasada que ganha data futura volta a Pendente.
+  A coordenação só consulta (403 na API). Hipótese 44: os dois podem alterar qualquer atividade do TCC, inclusive a que o outro criou; não há
+  ação para marcar atividade como concluída nesta versão.
+- **Histórico com autor**: cada evento da linha do tempo mostra "por Nome (papel)": reunião e comentários pelo orientador, entrega pelo aluno.
+  Atividades e conclusão de etapa **não** entram na linha do tempo ainda (RF11 cita atividades).
+- **RF05 (registro e consulta das informações do TCC)**: cartão **Informações do TCC** com título, área (do catálogo de áreas) e descrição (o tema), mais o
+  semestre (não editável aqui, vem da inscrição). **Aluno e orientador editam**, a coordenação só consulta. O aluno vê e edita o cartão em
+  **Documentos, antes de "Enviar nova versão"**; o orientador, no detalhe do orientando (`/orientador/orientandos/:id`, abaixo do Resumo); a
+  coordenação, no detalhe do TCC. Regras da API simulada (o backend deve repetir): só aluno ou orientador **do TCC** editam (403 para os demais);
+  título de 5 a 200 caracteres, área existente no catálogo, descrição de 20 a 1000. Os valores de exemplo são fictícios e **não** vêm da solicitação
+  aceita (o aceite não vincula, hipótese 11). Hipótese 45: os dois podem editar a qualquer momento, sem histórico de quem mudou o quê. O resto do
+  que a RF05 pode abranger já existe em outros requisitos: etapas (RF06), documentos (RF09), reuniões e comentários (RF10).
+- **Calendário público (RF17)**: mostra defesas e o **período de inscrição** definido pela coordenação (que é o prazo institucional hoje
+  existente); os prazos de TCC 1 e TCC 2 não aparecem.
+- **Numeração dos RFs**: os números usados neste documento e no `CLAUDE.md` (RF01 a RF30, de antes) **não são** os do Quadro de requisitos funcionais
+  do texto da monografia (RF01 a RF20). Ao citar um requisito, usar a numeração do texto.
+- **Etapas públicas (RF18)**: não há aba nem página de etapas. A **tela inicial** traz o cartão "Você conhece as etapas do TCC?" (só para visitante sem
+  login) com **Ver as etapas** e **Já conheço**. "Ver as etapas" abre um **modal** com as 8 etapas do modelo genérico (4 do TCC 1 e 4 do TCC 2),
+  numeradas em sequência, e o atalho "Encontrar orientador"; "Já conheço" dispensa o cartão neste navegador (`sessionStorage`; sem armazenamento, o
+  convite volta). O link "Ver as etapas do TCC" no cartão "Como pedir orientação" abre o mesmo modal, então as etapas continuam acessíveis depois de
+  dispensar o convite. A API simulada (`listEtapasPublicas`) devolve só nome e fase, sem dado de nenhum trabalho. As etapas de cada TCC (definidas
+  pelo orientador) continuam só para quem está logado, e o modal mostra apenas o modelo padrão. A tela não traz aviso de que são genéricas; isso está
+  registrado aqui (hipótese 2). Hipótese 46: o convite aparece só para visitante, e quem já entrou vê as etapas no menu do perfil.
+
+## RF11 e RF14: histórico com atividades e rejeição de proposta de banca
+
+- **Histórico com atividades (RF11)**: a linha do tempo do TCC (`/aluno/historico` e a aba Orientações do orientando) passou a incluir um evento
+  **Atividade** para cada atividade do cronograma, com quem a criou ("por Nome (papel)") e o dia da criação. As atividades de exemplo não guardam a data
+  de criação e valem 14 dias antes do prazo, sem passar de hoje. Editar ou excluir uma atividade **não** gera evento, e a atividade excluída some do
+  histórico. Hipótese 47: quando houver backend, o histórico deve guardar também as alterações e exclusões.
+- **Rejeitar proposta de banca (RF14)**: no lugar de "Remover", a coordenação **rejeita** a proposta (motivo opcional, até 300 caracteres). A banca fica
+  com a situação **Rejeitada**, não é pública, e o aluno e o orientador veem a rejeição e o motivo no cartão. Eles podem **ajustar e reenviar** (a proposta
+  volta a Proposta e limpa o motivo) ou remover a proposta. A coordenação não edita uma proposta rejeitada e não remove uma proposta (a API devolve
+  409); para uma banca **Agendada** ela tem **Editar** e **Cancelar banca**, que apaga os dados e tira a defesa do site e do calendário.
+  Regras da API simulada (o backend deve repetir): só a coordenação rejeita (403 para os demais); só uma proposta pode ser rejeitada (409). Hipótese 48:
+  uma proposta rejeitada pode ser reenviada quantas vezes for preciso, sem limite e sem histórico das rejeições.
+- **Texto da Metodologia**: no RF17 saiu "prazos" (o período de inscrição, que a coordenação define, é o prazo que o calendário mostra) e no RF18 saiu
+  "procedimentos" (o protótipo traz só as etapas).
 

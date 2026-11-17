@@ -14,7 +14,7 @@ export default function HistoricoPage() {
 
   return (
     <>
-      <PageHeader title="Histórico de orientações" description="Reuniões, entregas, feedbacks e comentários do seu TCC, do mais recente ao mais antigo." />
+      <PageHeader title="Histórico de orientações" description="Reuniões, atividades, entregas, feedbacks e comentários do seu TCC, do mais recente ao mais antigo." />
       <DataBoundary
         state={state}
         reload={reload}

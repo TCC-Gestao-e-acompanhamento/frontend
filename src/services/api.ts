@@ -31,7 +31,7 @@ import {
 } from '../mocks/data'
 import { LIMITE_OBSERVACAO, TIPOS_DOCUMENTO } from '../lib/documentos'
 import { linkWebSeguro } from '../lib/links'
-import { daysUntil, proximosSemestres, toIso } from '../lib/format'
+import { daysUntil, formatDate, proximosSemestres, toIso } from '../lib/format'
 import { emailUnbValido } from '../lib/validators'
 import type {
   AreaOrientacao,
@@ -57,6 +57,8 @@ import type {
   EtapaDef,
   DefinirEtapas,
   NovaAtividade,
+  EdicaoAtividade,
+  InformacoesTcc,
   Feedback,
   NovaSolicitacao,
   NovoDocumento,
@@ -133,6 +135,8 @@ function buildTcc(r: TccRecord): Tcc {
     id: r.id,
     titulo: r.titulo,
     semestre: r.semestre,
+    area: r.area,
+    descricao: r.descricao,
     aluno: userById(r.alunoId),
     orientador: userById(r.orientadorId),
     fase: lista[atual].fase,
@@ -223,8 +227,14 @@ function toBanca(b: (typeof bancas)[number]): Banca {
     data: b.data,
     local: b.local,
     link: b.link,
+    motivoRejeicao: b.motivoRejeicao,
     membros: b.membros,
   }
+}
+
+/** Etapas do TCC abertas ao público: só o nome e a fase, sem dados de nenhum trabalho. Hoje são o modelo genérico. */
+export function listEtapasPublicas(): Promise<EtapaDef[]> {
+  return settle(ETAPAS.map((e) => ({ nome: e.nome, fase: e.fase })), [])
 }
 
 /** Somente defesas com data definida (agendadas ou realizadas) são públicas. */
@@ -247,6 +257,20 @@ export function getTcc(user: User, id: string): Promise<Tcc> {
 }
 
 /** Aluno ou orientador do TCC conclui a etapa atual: a seguinte passa a ser a atual (ou o trabalho fica com todas concluídas). */
+/** Aluno e orientador do TCC editam título, área e descrição do trabalho. A coordenação só consulta. */
+export async function updateInformacoesTcc(user: User, tccId: string, input: InformacoesTcc): Promise<Tcc> {
+  if (user.role !== 'aluno' && user.role !== 'orientador') throw new ApiError('Somente o aluno ou o orientador do TCC editam as informações do trabalho', 403)
+  const rec = assertAccess(user, tccId)
+  const titulo = String(input.titulo ?? '').trim()
+  const descricao = String(input.descricao ?? '').trim()
+  if (titulo.length < 5 || titulo.length > 200) throw new ApiError('O título precisa ter de 5 a 200 caracteres.', 422)
+  if (!areas.some((a) => a.nome === input.area)) throw new ApiError('Escolha uma área da lista.', 422)
+  if (descricao.length < 20 || descricao.length > 1000) throw new ApiError('A descrição precisa ter de 20 a 1000 caracteres.', 422)
+  Object.assign(rec, { titulo, area: input.area, descricao })
+  await wait(300)
+  return buildTcc(rec)
+}
+
 export async function concluirEtapa(user: User, tccId: string, etapaEsperada: string): Promise<Tcc> {
   if (user.role !== 'aluno' && user.role !== 'orientador') throw new ApiError('Somente o aluno ou o orientador concluem uma etapa', 403)
   const rec = assertAccess(user, tccId)
@@ -300,19 +324,70 @@ export async function defineEtapas(user: User, tccId: string, input: DefinirEtap
   return buildTcc(rec)
 }
 
-/** O orientador cria uma atividade (reunião, entrega ou marco) no cronograma de um orientando. */
-export async function createAtividade(user: User, input: NovaAtividade): Promise<Atividade> {
-  if (user.role !== 'orientador') throw new ApiError('Somente o orientador cria atividades no cronograma', 403)
-  assertAccess(user, input.tccId)
+const TIPO_ATIVIDADE: Record<AtividadeRecord['tipo'], string> = { entrega: 'Entrega', reuniao: 'Reunião', marco: 'Marco' }
+
+/** Dia em que a atividade foi criada; as de exemplo não guardam a data e valem 14 dias antes do prazo, sem passar de hoje. */
+function criacaoDaAtividade(a: AtividadeRecord): string {
+  if (a.criadaEm) return a.criadaEm
+  const d = new Date(`${a.prazo}T12:00:00`)
+  d.setDate(d.getDate() - 14)
+  const antes = toIso(d)
+  const hoje = addDays(0)
+  return antes < hoje ? antes : hoje
+}
+
+/** Visão da atividade para a tela: acrescenta o nome do aluno e de quem criou (os dados de exemplo valem como do orientador). */
+function atividadeView(a: AtividadeRecord): Atividade {
+  const tcc = tccs.find((t) => t.id === a.tccId)!
+  const autor = userById(a.criadaPorId ?? tcc.orientadorId)
+  return { id: a.id, tccId: a.tccId, titulo: a.titulo, prazo: a.prazo, status: a.status, tipo: a.tipo, alunoNome: aluno(a.tccId), criadaPorNome: autor.nome, criadaPorRole: autor.role }
+}
+
+/** Título de 3 a 120 caracteres, tipo conhecido e data válida (de hoje em diante, salvo a data que a atividade já tinha). */
+function validarAtividade(input: EdicaoAtividade, prazoAtual?: string): { titulo: string } {
   const titulo = String(input.titulo ?? '').trim()
   if (titulo.length < 3 || titulo.length > 120) throw new ApiError('O título precisa ter de 3 a 120 caracteres.', 422)
   if (input.tipo !== 'reuniao' && input.tipo !== 'entrega' && input.tipo !== 'marco') throw new ApiError('Tipo de atividade inválido.', 422)
   if (!dataIsoValida(input.prazo)) throw new ApiError('Informe a data da atividade.', 422)
-  if (input.prazo < addDays(0)) throw new ApiError('A data da atividade não pode ser anterior a hoje.', 422)
-  const rec: AtividadeRecord = { id: `at${Date.now()}${Math.random().toString(36).slice(2, 6)}`, tccId: input.tccId, titulo, prazo: input.prazo, status: 'pendente', tipo: input.tipo }
+  if (input.prazo !== prazoAtual && input.prazo < addDays(0)) throw new ApiError('A data da atividade não pode ser anterior a hoje.', 422)
+  return { titulo }
+}
+
+/** Só aluno e orientador do TCC mexem no cronograma; a coordenação apenas consulta. */
+function atividadeEditavel(user: User, id: string): AtividadeRecord {
+  if (user.role !== 'aluno' && user.role !== 'orientador') throw new ApiError('Somente o aluno ou o orientador do TCC alteram o cronograma', 403)
+  const rec = atividades.find((a) => a.id === id)
+  if (!rec) throw new ApiError('Atividade não encontrada', 404)
+  assertAccess(user, rec.tccId)
+  return rec
+}
+
+/** O aluno ou o orientador cria uma atividade (reunião, entrega ou marco) no cronograma do TCC. */
+export async function createAtividade(user: User, input: NovaAtividade): Promise<Atividade> {
+  if (user.role !== 'aluno' && user.role !== 'orientador') throw new ApiError('Somente o aluno ou o orientador do TCC criam atividades no cronograma', 403)
+  assertAccess(user, input.tccId)
+  const { titulo } = validarAtividade(input)
+  const rec: AtividadeRecord = { id: `at${Date.now()}${Math.random().toString(36).slice(2, 6)}`, tccId: input.tccId, titulo, prazo: input.prazo, status: 'pendente', tipo: input.tipo, criadaPorId: user.id, criadaEm: addDays(0) }
   atividades.push(rec)
   await wait(300)
-  return { ...rec, alunoNome: aluno(rec.tccId) }
+  return atividadeView(rec)
+}
+
+/** Edita título, tipo e data. Uma atividade atrasada que ganha data futura volta a pendente. */
+export async function updateAtividade(user: User, id: string, input: EdicaoAtividade): Promise<Atividade> {
+  const rec = atividadeEditavel(user, id)
+  const { titulo } = validarAtividade(input, rec.prazo)
+  Object.assign(rec, { titulo, tipo: input.tipo, prazo: input.prazo })
+  if (rec.status === 'atrasada' && rec.prazo >= addDays(0)) rec.status = 'pendente'
+  await wait(300)
+  return atividadeView(rec)
+}
+
+/** Remove a atividade do cronograma. */
+export async function deleteAtividade(user: User, id: string): Promise<void> {
+  const rec = atividadeEditavel(user, id)
+  atividades.splice(atividades.indexOf(rec), 1)
+  await wait(300)
 }
 
 export function listAtividades(user: User, tccId?: string): Promise<Atividade[]> {
@@ -320,7 +395,7 @@ export function listAtividades(user: User, tccId?: string): Promise<Atividade[]>
   if (tccId) assertAccess(user, tccId)
   const data = atividades
     .filter((a) => ids.has(a.tccId) && (!tccId || a.tccId === tccId))
-    .map((a) => ({ ...a, alunoNome: aluno(a.tccId) }))
+    .map(atividadeView)
     .sort((a, b) => a.prazo.localeCompare(b.prazo))
   return settle(data, [])
 }
@@ -927,8 +1002,10 @@ function documentoAcessivel(user: User, documentoId: string): DocumentoRecord {
 }
 
 export function listLinhaDoTempo(user: User, tccId: string): Promise<EventoTempo[]> {
-  assertAccess(user, tccId)
+  const tcc = assertAccess(user, tccId)
   const ev: EventoTempo[] = []
+  const de = (id: string) => ({ autorNome: userById(id).nome, autorRole: userById(id).role })
+  // reuniões são registradas pelo orientador do TCC; documentos são enviados pelo aluno
   for (const o of orientacoes.filter((x) => x.tccId === tccId)) {
     ev.push({
       id: o.id,
@@ -937,10 +1014,11 @@ export function listLinhaDoTempo(user: User, tccId: string): Promise<EventoTempo
       tipo: 'reuniao',
       titulo: `Reunião ${o.formato === 'online' ? 'online' : 'presencial'}`,
       detalhe: o.combinados ? `${o.resumo} Combinados: ${o.combinados}` : o.resumo,
+      ...de(tcc.orientadorId),
     })
   }
   for (const d of documentos.filter((x) => x.tccId === tccId)) {
-    ev.push({ id: `doc-${d.id}`, tccId, data: d.enviadoEm, tipo: 'documento', titulo: `${d.nome}, versão ${d.versao}, enviado`, detalhe: d.observacao, documentoId: d.id })
+    ev.push({ id: `doc-${d.id}`, tccId, data: d.enviadoEm, tipo: 'documento', titulo: `${d.nome}, versão ${d.versao}, enviado`, detalhe: d.observacao, documentoId: d.id, ...de(tcc.alunoId) })
   }
   for (const f of feedbacks.filter((x) => x.tccId === tccId)) {
     ev.push({
@@ -951,15 +1029,28 @@ export function listLinhaDoTempo(user: User, tccId: string): Promise<EventoTempo
       titulo: f.tipo === 'correcao' ? 'Correção solicitada' : 'Comentário do orientador',
       detalhe: f.texto,
       documentoId: f.documentoId,
+      ...de(f.autorId),
     })
   }
   for (const a of anotacoes) {
     const doc = documentos.find((d) => d.id === a.documentoId)
     if (!doc || doc.tccId !== tccId) continue
     const t = toAnotacao(a)
-    ev.push({ id: `an-${a.id}`, tccId, data: a.criadaEm, tipo: 'comentario', titulo: `Comentário em “${t.trecho}”`, detalhe: `${doc.nome}, versão ${doc.versao}: ${a.texto}`, documentoId: a.documentoId })
+    ev.push({ id: `an-${a.id}`, tccId, data: a.criadaEm, tipo: 'comentario', titulo: `Comentário em “${t.trecho}”`, detalhe: `${doc.nome}, versão ${doc.versao}: ${a.texto}`, documentoId: a.documentoId, ...de(a.autorId) })
   }
-  const ordem: Record<EventoTempo['tipo'], number> = { reuniao: 0, documento: 1, feedback: 2, comentario: 3 }
+  // atividades do cronograma, com quem as criou (as de exemplo valem como do orientador); editar ou excluir não cria evento
+  for (const a of atividades.filter((x) => x.tccId === tccId)) {
+    ev.push({
+      id: `at-${a.id}`,
+      tccId,
+      data: criacaoDaAtividade(a),
+      tipo: 'atividade',
+      titulo: `Atividade adicionada ao cronograma: ${a.titulo}`,
+      detalhe: `${TIPO_ATIVIDADE[a.tipo]} para ${formatDate(a.prazo)}.`,
+      ...de(a.criadaPorId ?? tcc.orientadorId),
+    })
+  }
+  const ordem: Record<EventoTempo['tipo'], number> = { reuniao: 0, atividade: 1, documento: 2, feedback: 3, comentario: 4 }
   ev.sort((a, b) => b.data.localeCompare(a.data) || ordem[a.tipo] - ordem[b.tipo])
   return settle(ev, [])
 }
@@ -1150,12 +1241,12 @@ export function getMinhaBanca(user: User): Promise<Banca | null> {
   return settle<Banca | null>(rec ? toBanca(rec) : null, null)
 }
 
-/** O aluno propõe a banca do próprio TCC. Fica como "proposta" até a coordenação confirmar (procedimento a confirmar). */
+/** O aluno ou o orientador do TCC propõe a banca. Fica como "proposta" até a coordenação confirmar (procedimento a confirmar). */
 export async function createBanca(user: User, input: NovaBanca): Promise<Banca> {
-  if (user.role !== 'aluno') throw new ApiError('Apenas alunos propõem a própria banca', 403)
+  if (user.role !== 'aluno' && user.role !== 'orientador') throw new ApiError('Apenas o aluno ou o orientador do TCC propõem a banca', 403)
   assertAccess(user, input.tccId)
   const existente = bancas.find((b) => b.tccId === input.tccId)
-  if (existente && existente.situacao !== 'a_definir') throw new ApiError('Este TCC já tem uma banca proposta ou validada.', 409)
+  if (existente && existente.situacao !== 'a_definir') throw new ApiError('Este TCC já tem uma banca proposta, rejeitada ou validada. Edite a proposta existente.', 409)
   validarBanca(input)
   const dados = { situacao: 'proposta' as const, data: input.data || undefined, local: input.local?.trim() || undefined, link: linkWebSeguro(input.link), membros: membrosLimpos(input) }
   let rec = existente
@@ -1169,8 +1260,8 @@ export async function createBanca(user: User, input: NovaBanca): Promise<Banca> 
 }
 
 /**
- * Quem altera uma banca: o aluno do TCC, enquanto ela é só uma proposta; depois que a coordenação confirma, só a coordenação
- * (que também ajusta bancas propostas ou agendadas). Banca já realizada não muda.
+ * Quem altera uma banca: o aluno ou o orientador do TCC, enquanto ela é só uma proposta; depois que a coordenação confirma, só a
+ * coordenação (que também ajusta bancas propostas ou agendadas). Banca já realizada não muda.
  */
 function bancaEditavel(user: User, id: string) {
   const rec = bancas.find((b) => b.id === id)
@@ -1179,8 +1270,9 @@ function bancaEditavel(user: User, id: string) {
     if (rec.situacao !== 'proposta' && rec.situacao !== 'agendada') throw new ApiError('Só bancas propostas ou agendadas podem ser alteradas.', 409)
     return rec
   }
-  if (user.role !== 'aluno' || !scope(user).some((t) => t.id === rec.tccId)) throw new ApiError('Você não tem permissão para alterar esta banca', 403)
-  if (rec.situacao !== 'proposta') throw new ApiError('Esta banca já foi validada pela coordenação. Só a coordenação pode alterá-la.', 409)
+  if ((user.role !== 'aluno' && user.role !== 'orientador') || !scope(user).some((t) => t.id === rec.tccId)) throw new ApiError('Você não tem permissão para alterar esta banca', 403)
+  // uma proposta rejeitada continua nas mãos de quem a fez, para ajustar e reenviar ou remover
+  if (rec.situacao !== 'proposta' && rec.situacao !== 'rejeitada') throw new ApiError('Esta banca já foi validada pela coordenação. Só a coordenação pode alterá-la.', 409)
   return rec
 }
 
@@ -1190,18 +1282,24 @@ export async function updateBanca(user: User, id: string, input: Omit<NovaBanca,
   if (rec.situacao === 'agendada' && !input.data) throw new ApiError('Uma banca agendada precisa de data.', 422)
   // campo `link` ausente mantém o que já existe; texto vazio apaga
   Object.assign(rec, { data: input.data || undefined, local: input.local?.trim() || undefined, link: 'link' in input ? linkWebSeguro(input.link) : rec.link, membros: membrosLimpos({ ...input, tccId: rec.tccId as string }) })
+  // ajustar uma proposta rejeitada é reenviá-la: volta a aguardar a coordenação
+  if (rec.situacao === 'rejeitada') Object.assign(rec, { situacao: 'proposta' as const, motivoRejeicao: undefined })
   await wait()
   return toBanca(rec)
 }
 
-/** Remove a banca (proposta pelo aluno, ou qualquer uma ainda não realizada para a coordenação): o TCC volta a ficar sem banca definida. */
+/**
+ * Remove a banca: o aluno ou o orientador, a proposta (ou a proposta rejeitada); a coordenação, a banca já validada, que deixa de ser pública.
+ * A coordenação não remove uma proposta: ela a rejeita (`rejeitarBanca`). O TCC volta a ficar sem banca definida.
+ */
 export async function cancelBanca(user: User, id: string): Promise<void> {
   const rec = bancaEditavel(user, id)
-  Object.assign(rec, { situacao: 'a_definir' as const, data: undefined, local: undefined, membros: [] })
+  if (user.role === 'coordenacao' && rec.situacao === 'proposta') throw new ApiError('Uma proposta é rejeitada, não cancelada.', 409)
+  Object.assign(rec, { situacao: 'a_definir' as const, data: undefined, local: undefined, link: undefined, motivoRejeicao: undefined, membros: [] })
   await wait(300)
 }
 
-/** A coordenação valida a proposta do aluno: a banca fica "agendada" e passa a aparecer no site público e no calendário. */
+/** A coordenação valida a proposta (do aluno ou do orientador): a banca fica "agendada" e passa a aparecer no site público e no calendário. */
 export async function confirmarBanca(user: User, id: string): Promise<Banca> {
   if (user.role !== 'coordenacao') throw new ApiError('Somente a coordenação valida uma banca', 403)
   const rec = bancas.find((b) => b.id === id)
@@ -1211,6 +1309,20 @@ export async function confirmarBanca(user: User, id: string): Promise<Banca> {
   if (rec.data < addDays(0)) throw new ApiError('A data da banca já passou. Atualize a data antes de validar.', 422)
   if (rec.membros.length < 1) throw new ApiError('Informe os membros da banca antes de validar.', 422)
   rec.situacao = 'agendada'
+  await wait(300)
+  return toBanca(rec)
+}
+
+/** A coordenação rejeita a proposta. Ela continua visível para quem a fez, com o motivo (opcional), e pode ser ajustada e reenviada. */
+export async function rejeitarBanca(user: User, id: string, motivo?: string): Promise<Banca> {
+  if (user.role !== 'coordenacao') throw new ApiError('Somente a coordenação rejeita uma proposta de banca', 403)
+  const rec = bancas.find((b) => b.id === id)
+  if (!rec || !rec.tccId) throw new ApiError('Banca não encontrada', 404)
+  if (rec.situacao !== 'proposta') throw new ApiError('Só uma proposta pode ser rejeitada.', 409)
+  const texto = typeof motivo === 'string' ? motivo.trim() : ''
+  if (texto.length > 300) throw new ApiError('O motivo pode ter no máximo 300 caracteres.', 422)
+  rec.situacao = 'rejeitada'
+  rec.motivoRejeicao = texto || undefined
   await wait(300)
   return toBanca(rec)
 }

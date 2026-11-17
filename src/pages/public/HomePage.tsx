@@ -1,6 +1,8 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
+import { EtapasModelo } from '../../components/EtapasModelo'
 import { EventoItem } from '../../components/EventoItem'
-import { ButtonLink, DataBoundary, Icon } from '../../design-system'
+import { Button, ButtonLink, DataBoundary, Icon, Modal } from '../../design-system'
 import { useAsync } from '../../hooks/useAsync'
 import { daysUntil, formatDate, plural } from '../../lib/format'
 import { getIndicadoresPublicos, getPeriodoInscricao, listAreas, listEventosPublicos } from '../../services/api'
@@ -13,8 +15,27 @@ const PASSOS = [
   { titulo: 'Acompanhe a resposta', texto: 'O professor aceita ou recusa, e você vê o retorno.' },
 ]
 
+const CHAVE_CONHECE_ETAPAS = 'tcc.proto.conheceEtapas'
+
 export default function HomePage() {
   const { user } = useAuth()
+  const [verEtapas, setVerEtapas] = useState(false)
+  // quem já conhece as etapas dispensa o convite (só neste navegador; sem armazenamento, o convite volta)
+  const [conheceEtapas, setConheceEtapas] = useState(() => {
+    try {
+      return sessionStorage.getItem(CHAVE_CONHECE_ETAPAS) === '1'
+    } catch {
+      return false
+    }
+  })
+  const dispensarEtapas = () => {
+    setConheceEtapas(true)
+    try {
+      sessionStorage.setItem(CHAVE_CONHECE_ETAPAS, '1')
+    } catch {
+      /* sem armazenamento: vale só até recarregar */
+    }
+  }
   const indicadores = useAsync(getIndicadoresPublicos)
   const eventos = useAsync(listEventosPublicos)
   const areas = useAsync(listAreas)
@@ -75,11 +96,24 @@ export default function HomePage() {
                 </li>
               ))}
             </ol>
+            <button type="button" onClick={() => setVerEtapas(true)} className="mt-4 inline-flex min-h-11 items-center text-sm font-medium text-brand-700 hover:underline">Ver as etapas do TCC</button>
           </section>
         </div>
       </section>
 
       <div className="mx-auto max-w-6xl px-4 py-12 lg:px-8">
+        {!user && !conheceEtapas && (
+          <section aria-labelledby="etapas-title" className="mb-10 flex flex-wrap items-center justify-between gap-x-6 gap-y-4 rounded-card border border-border bg-surface-muted p-5">
+            <div className="min-w-0">
+              <h2 id="etapas-title" className="text-base font-semibold">Você conhece as etapas do TCC?</h2>
+              <p className="mt-0.5 text-sm text-ink-muted">Veja o caminho do TCC 1 ao TCC 2 antes de pedir orientação.</p>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <Button onClick={() => setVerEtapas(true)}>Ver as etapas</Button>
+              <Button variant="secondary" onClick={dispensarEtapas}>Já conheço</Button>
+            </div>
+          </section>
+        )}
         <section aria-labelledby="prox-title">
           <div className="mb-4 flex items-end justify-between gap-3">
             <h2 id="prox-title" className="text-xl font-semibold">Próximas datas</h2>
@@ -119,6 +153,16 @@ export default function HomePage() {
           </DataBoundary>
         </div>
       </section>
+
+      <Modal open={verEtapas} title="Etapas do TCC" onClose={() => setVerEtapas(false)}>
+        <div className="space-y-5">
+          <EtapasModelo />
+          <div className="flex flex-wrap gap-3">
+            <ButtonLink to="/orientadores">Encontrar orientador</ButtonLink>
+            <Button variant="neutral" onClick={() => setVerEtapas(false)}>Fechar</Button>
+          </div>
+        </div>
+      </Modal>
     </>
   )
 }
